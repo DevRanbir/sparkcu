@@ -40,22 +40,21 @@ function Sidebar({ currentPage, setCurrentPage, isLoggedIn, onLogout }) {
       title: 'Schedule' 
     },
     { 
-      id: 'registration', 
+      id: 'about', 
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <circle cx="8.5" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <line x1="20" y1="8" x2="20" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <line x1="23" y1="11" x2="17" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+          <path d="M9.09 9C9.3251 8.33167 9.78915 7.76811 10.4 7.40913C11.0108 7.05016 11.7289 6.91894 12.4272 7.03871C13.1255 7.15849 13.7588 7.52152 14.2151 8.06353C14.6713 8.60553 14.9211 9.29152 14.92 10C14.92 12 11.92 13 11.92 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <point cx="12" cy="17" r="1" fill="currentColor"/>
         </svg>
       ), 
-      title: 'Register' 
+      title: 'About' 
     }
   ];
 
-  // Authentication-dependent item
-  const authItem = isLoggedIn ? 
-    {
+  // Authentication-dependent items
+  const authItems = isLoggedIn ? 
+    [{
       id: 'dashboard', 
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -66,7 +65,19 @@ function Sidebar({ currentPage, setCurrentPage, isLoggedIn, onLogout }) {
         </svg>
       ), 
       title: 'Dashboard' 
-    } :
+    }] :
+    [{
+      id: 'register', 
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <circle cx="8.5" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <line x1="20" y1="8" x2="20" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <line x1="17" y1="11" x2="23" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      ), 
+      title: 'Register' 
+    },
     {
       id: 'login', 
       icon: (
@@ -77,9 +88,9 @@ function Sidebar({ currentPage, setCurrentPage, isLoggedIn, onLogout }) {
         </svg>
       ), 
       title: 'Login' 
-    };
+    }];
 
-  const sidebarItems = [...baseSidebarItems, authItem];
+  const sidebarItems = [...baseSidebarItems, ...authItems];
 
   // Add logout item if logged in
   if (isLoggedIn) {

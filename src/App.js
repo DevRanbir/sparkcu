@@ -3,9 +3,10 @@ import './App.css';
 import Homepage from './Homepage';
 import Rules from './pages/Rules';
 import Schedule from './pages/Schedule';
-import Registration from './pages/Registration';
+import About from './pages/About';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 
@@ -47,12 +48,14 @@ function App() {
         return <Rules />;
       case 'schedule':
         return <Schedule />;
-      case 'registration':
-        return <Registration />;
+      case 'about':
+        return <About />;
       case 'dashboard':
         return isLoggedIn ? <Dashboard userData={userData} /> : <Login onLogin={handleLogin} />;
       case 'login':
         return <Login onLogin={handleLogin} />;
+      case 'register':
+        return <Register />;
       default:
         return <Homepage />;
     }

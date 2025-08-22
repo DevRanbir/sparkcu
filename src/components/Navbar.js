@@ -36,7 +36,7 @@ function Navbar({ currentPage, setCurrentPage }) {
         <div className="navbar-actions">
           <button 
             className="btn-register"
-            onClick={() => handleNavigation('registration')}
+            onClick={() => handleNavigation('register')}
           >
             Register Now
           </button>
