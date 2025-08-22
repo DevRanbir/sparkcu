@@ -1,0 +1,141 @@
+/* Sidebar Container */
+.sidebar-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  height: 100vh;
+  pointer-events: none; /* Allows clicks to pass through to page content */
+}
+
+.sidebar {
+  width: 60px;
+  height: 100%;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto; /* Re-enable pointer events for sidebar content */
+  transition: all 0.3s ease;
+}
+
+/* Sidebar Content */
+.sidebar-content {
+  flex: 1;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Sidebar Items */
+.sidebar-item {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.sidebar-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+  transform: scale(1.05);
+}
+
+.sidebar-item.active {
+  background: rgba(102, 126, 234, 0.15);
+  border-right: 3px solid #667eea;
+}
+
+.sidebar-item.active .sidebar-icon {
+  color: #667eea;
+}
+
+.sidebar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+  transition: all 0.2s ease;
+}
+
+.sidebar-item:hover .sidebar-icon {
+  color: #667eea;
+}
+
+.sidebar-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Custom Tooltip */
+.sidebar-tooltip {
+  position: absolute;
+  left: 70px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1001;
+  opacity: 0;
+  animation: tooltipFadeIn 0.2s ease forwards;
+}
+
+.sidebar-tooltip::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -5px;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: rgba(0, 0, 0, 0.8);
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 55px;
+  }
+  
+  .sidebar-item {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .sidebar-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .sidebar-tooltip {
+    left: 65px;
+    font-size: 13px;
+  }
+}
+
+/* Ensure sidebar doesn't interfere with page scrolling */
+body {
+  overflow-x: hidden;
+}

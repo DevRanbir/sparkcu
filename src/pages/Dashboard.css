@@ -1,0 +1,454 @@
+/* Dashboard Page Styles */
+.dashboard-page {
+  min-height: 100vh;
+  background: 
+    linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+    linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+  padding: 2rem;
+  background-color: #f8f9fa;
+}
+
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dashboard-header h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1rem;
+}
+
+.dashboard-header p {
+  font-size: 1.2rem;
+  color: #666;
+  line-height: 1.6;
+}
+
+.dashboard-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  gap: 2rem;
+}
+
+/* Countdown Section */
+.countdown-section {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  text-align: center;
+}
+
+.countdown-section h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.countdown-timer {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.countdown-item {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.countdown-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.countdown-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Registration Status */
+.registration-status {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.registration-status h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.status-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: 15px;
+  border-left: 4px solid transparent;
+}
+
+.status-card.confirmed {
+  background: rgba(40, 167, 69, 0.1);
+  border-left-color: #28a745;
+}
+
+.status-icon {
+  color: #28a745;
+  flex-shrink: 0;
+}
+
+.status-content h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.status-content p {
+  color: #666;
+  margin: 0;
+}
+
+/* Team Information */
+.team-info {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.team-info h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.team-card {
+  background: rgba(102, 126, 234, 0.1);
+  padding: 1.5rem;
+  border-radius: 15px;
+  border-left: 4px solid #667eea;
+}
+
+.team-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.team-header h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.team-size {
+  background: #667eea;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.team-members h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.team-members ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.team-members li {
+  padding: 0.5rem 0;
+  color: #555;
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.team-members li::before {
+  content: "👤";
+  position: absolute;
+  left: 0;
+}
+
+/* Quick Links */
+.quick-links {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.quick-links h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.link-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.8);
+  border-left: 4px solid transparent;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.link-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(31, 38, 135, 0.2);
+}
+
+.link-icon {
+  flex-shrink: 0;
+}
+
+.link-content h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.link-content p {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Announcements */
+.announcements {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.announcements h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.announcements-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.announcement-card {
+  padding: 1.5rem;
+  border-radius: 15px;
+  border-left: 4px solid transparent;
+}
+
+.announcement-card.info {
+  background: rgba(23, 162, 184, 0.1);
+  border-left-color: #17a2b8;
+}
+
+.announcement-card.event {
+  background: rgba(102, 126, 234, 0.1);
+  border-left-color: #667eea;
+}
+
+.announcement-card.update {
+  background: rgba(40, 167, 69, 0.1);
+  border-left-color: #28a745;
+}
+
+.announcement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.announcement-header h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.announcement-timestamp {
+  font-size: 0.85rem;
+  color: #888;
+  font-style: italic;
+}
+
+.announcement-card p {
+  color: #555;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Event Details */
+.event-details {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.event-details h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.detail-card {
+  background: rgba(118, 75, 162, 0.1);
+  padding: 1.5rem;
+  border-radius: 15px;
+  border-left: 4px solid #764ba2;
+}
+
+.detail-card h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.75rem;
+}
+
+.detail-card p {
+  color: #555;
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.detail-card p:last-child {
+  margin-bottom: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboard-page {
+    padding: 1rem;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 2.5rem;
+  }
+  
+  .countdown-timer {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .countdown-item {
+    padding: 1rem;
+  }
+  
+  .countdown-number {
+    font-size: 2rem;
+  }
+  
+  .links-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .team-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .announcement-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header h1 {
+    font-size: 2rem;
+  }
+  
+  .countdown-timer {
+    grid-template-columns: 1fr;
+  }
+  
+  .countdown-item {
+    padding: 0.75rem;
+  }
+  
+  .countdown-number {
+    font-size: 1.75rem;
+  }
+  
+  .team-members ul {
+    grid-template-columns: 1fr;
+  }
+}

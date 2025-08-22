@@ -1,0 +1,334 @@
+/* Schedule Page Styles */
+.schedule-page {
+  min-height: 100vh;
+  background-size: 40px 40px;
+  padding: 2rem;
+}
+
+.schedule-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.schedule-header h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1rem;
+}
+
+.schedule-header p {
+  font-size: 1.2rem;
+  color: #666;
+  line-height: 1.6;
+}
+
+.schedule-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 2rem;
+  padding-left: 3rem;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -2rem;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 3px solid #667eea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.timeline-icon {
+  color: #667eea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timeline-content {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1.5rem;
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.timeline-content:hover {
+  transform: translateX(5px);
+  box-shadow: 0 12px 40px rgba(31, 38, 135, 0.2);
+}
+
+.timeline-time {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #667eea;
+  margin-bottom: 0.5rem;
+}
+
+.timeline-event {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.timeline-description {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.timeline-location {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #888;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.timeline-location svg {
+  flex-shrink: 0;
+}
+
+/* Timeline item type colors */
+.timeline-item.registration .timeline-marker {
+  border-color: #28a745;
+}
+
+.timeline-item.registration .timeline-icon {
+  color: #28a745;
+}
+
+.timeline-item.ceremony .timeline-marker {
+  border-color: #6f42c1;
+}
+
+.timeline-item.ceremony .timeline-icon {
+  color: #6f42c1;
+}
+
+.timeline-item.networking .timeline-marker {
+  border-color: #17a2b8;
+}
+
+.timeline-item.networking .timeline-icon {
+  color: #17a2b8;
+}
+
+.timeline-item.work .timeline-marker {
+  border-color: #fd7e14;
+}
+
+.timeline-item.work .timeline-icon {
+  color: #fd7e14;
+}
+
+.timeline-item.break .timeline-marker {
+  border-color: #20c997;
+}
+
+.timeline-item.break .timeline-icon {
+  color: #20c997;
+}
+
+.timeline-item.mentoring .timeline-marker {
+  border-color: #ffc107;
+}
+
+.timeline-item.mentoring .timeline-icon {
+  color: #ffc107;
+}
+
+.timeline-item.presentation .timeline-marker {
+  border-color: #dc3545;
+}
+
+.timeline-item.presentation .timeline-icon {
+  color: #dc3545;
+}
+
+.timeline-item.judging .timeline-marker {
+  border-color: #6610f2;
+}
+
+.timeline-item.judging .timeline-icon {
+  color: #6610f2;
+}
+
+.schedule-footer {
+  max-width: 900px;
+  margin: 3rem auto 0;
+  display: grid;
+  gap: 2rem;
+}
+
+.schedule-notes,
+.venue-info {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2rem;
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.schedule-notes {
+  border-left: 4px solid #667eea;
+}
+
+.venue-info {
+  border-left: 4px solid #764ba2;
+}
+
+.schedule-notes h3,
+.venue-info h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.schedule-notes ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.schedule-notes li {
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  color: #555;
+  line-height: 1.6;
+}
+
+.schedule-notes li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #667eea;
+  font-weight: bold;
+}
+
+.venue-info p {
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+
+.venue-info strong {
+  color: #333;
+  font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .schedule-page {
+    padding: 1rem;
+  }
+  
+  .schedule-header h1 {
+    font-size: 2.5rem;
+  }
+  
+  .timeline {
+    padding-left: 1.5rem;
+  }
+  
+  .timeline::before {
+    left: 15px;
+  }
+  
+  .timeline-item {
+    padding-left: 2.5rem;
+  }
+  
+  .timeline-marker {
+    left: -1.75rem;
+    width: 30px;
+    height: 30px;
+  }
+  
+  .timeline-content {
+    padding: 1rem;
+  }
+  
+  .timeline-event {
+    font-size: 1.2rem;
+  }
+  
+  .schedule-footer {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .schedule-header h1 {
+    font-size: 2rem;
+  }
+  
+  .timeline {
+    padding-left: 1rem;
+  }
+  
+  .timeline::before {
+    left: 10px;
+  }
+  
+  .timeline-item {
+    padding-left: 2rem;
+  }
+  
+  .timeline-marker {
+    left: -1.5rem;
+    width: 25px;
+    height: 25px;
+  }
+  
+  .timeline-content {
+    padding: 0.75rem;
+  }
+  
+  .timeline-event {
+    font-size: 1.1rem;
+  }
+  
+  .schedule-notes,
+  .venue-info {
+    padding: 1.5rem;
+  }
+}

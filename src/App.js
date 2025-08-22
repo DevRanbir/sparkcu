@@ -1,23 +1,75 @@
-import logo from './logo.svg';
+import React, { useState, useEffect } from 'react';
 import './App.css';
+import Homepage from './Homepage';
+import Rules from './pages/Rules';
+import Schedule from './pages/Schedule';
+import Registration from './pages/Registration';
+import Dashboard from './pages/Dashboard';
+import Login from './pages/Login';
+import Sidebar from './components/Sidebar';
+import Footer from './components/Footer';
 
 function App() {
+  const [currentPage, setCurrentPage] = useState('homepage');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userData, setUserData] = useState(null);
+
+  // Check for existing login on app load
+  useEffect(() => {
+    const savedLoginState = localStorage.getItem('isLoggedIn');
+    const savedUserData = localStorage.getItem('userData');
+    
+    if (savedLoginState === 'true' && savedUserData) {
+      setIsLoggedIn(true);
+      setUserData(JSON.parse(savedUserData));
+    }
+  }, []);
+
+  const handleLogin = (user) => {
+    setIsLoggedIn(true);
+    setUserData(user);
+    setCurrentPage('dashboard');
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUserData(null);
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userData');
+    setCurrentPage('homepage');
+  };
+
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 'homepage':
+        return <Homepage />;
+      case 'rules':
+        return <Rules />;
+      case 'schedule':
+        return <Schedule />;
+      case 'registration':
+        return <Registration />;
+      case 'dashboard':
+        return isLoggedIn ? <Dashboard userData={userData} /> : <Login onLogin={handleLogin} />;
+      case 'login':
+        return <Login onLogin={handleLogin} />;
+      default:
+        return <Homepage />;
+    }
+  };
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <Sidebar 
+        currentPage={currentPage} 
+        setCurrentPage={setCurrentPage}
+        isLoggedIn={isLoggedIn}
+        onLogout={handleLogout}
+      />
+      <div className="main-content">
+        {renderCurrentPage()}
+      </div>
+      <Footer />
     </div>
   );
 }

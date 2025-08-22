@@ -1,0 +1,475 @@
+/* Rules Page - Slightly Bigger but Compact Design */
+.rules-page {
+  min-height: 100vh;
+  background-size: 30px 30px;
+  padding: 1.2rem;
+  padding-right: 5rem;
+  padding-top: 3.5rem;
+}
+
+.rules-header {
+  text-align: center;
+  margin-bottom: 1.8rem;
+}
+
+.rules-header h1 {
+  font-size: 2rem;
+  font-weight: 400;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.4rem;
+  letter-spacing: 0.2px;
+}
+
+.rules-header p {
+  font-size: 1rem;
+  color: #666;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* Grid Layout - Optimized for 6 Cards */
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.2rem;
+  max-width: 1300px;
+  margin: 0 auto 1.8rem;
+}
+
+/* Ensure optimal layout for 6 cards */
+@media (min-width: 1024px) {
+  .rules-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1400px) {
+  .rules-grid {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 1400px;
+  }
+}
+
+/* Rule Cards - Smaller & More Readable */
+.rule-card {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 4px 16px rgba(31, 38, 135, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+.rule-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.rule-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 24px rgba(31, 38, 135, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.rule-card:hover::before {
+  opacity: 1;
+}
+
+/* Card Headers - Slightly Bigger */
+.rule-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1.1rem 0.35rem;
+  border-bottom: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.rule-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.rule-header h3 {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+  margin: 0;
+  letter-spacing: 0.05px;
+}
+
+/* Category-specific styling - Enhanced for 6 Categories */
+.rule-card.general .rule-header {
+  border-bottom-color: rgba(102, 126, 234, 0.2);
+}
+
+.rule-card.ai .rule-header {
+  border-bottom-color: rgba(118, 75, 162, 0.2);
+}
+
+.rule-card.coding .rule-header {
+  border-bottom-color: rgba(40, 167, 69, 0.2);
+}
+
+.rule-card.presentation .rule-header {
+  border-bottom-color: rgba(23, 162, 184, 0.2);
+}
+
+.rule-card.behavioral .rule-header {
+  border-bottom-color: rgba(255, 193, 7, 0.2);
+}
+
+.rule-card.marking .rule-header {
+  border-bottom-color: rgba(220, 53, 69, 0.2);
+}
+
+/* Enhanced hover effects for marking category */
+.rule-card.marking:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 24px rgba(220, 53, 69, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+/* Category-specific bullet colors */
+.rule-card.general .rule-bullet {
+  color: rgba(102, 126, 234, 0.7);
+}
+
+.rule-card.ai .rule-bullet {
+  color: rgba(118, 75, 162, 0.7);
+}
+
+.rule-card.coding .rule-bullet {
+  color: rgba(40, 167, 69, 0.7);
+}
+
+.rule-card.presentation .rule-bullet {
+  color: rgba(23, 162, 184, 0.7);
+}
+
+.rule-card.behavioral .rule-bullet {
+  color: rgba(255, 193, 7, 0.8);
+}
+
+.rule-card.marking .rule-bullet {
+  color: rgba(220, 53, 69, 0.7);
+}
+
+/* Rule Content - Optimized for all categories */
+.rule-content {
+  padding: 0.6rem 1.1rem 0.85rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.rule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.35;
+  padding: 0.15rem 0;
+}
+
+.rule-item:last-child {
+  margin-bottom: 0;
+}
+
+.rule-bullet {
+  font-weight: 400;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+  transition: color 0.3s ease;
+}
+
+.rule-text {
+  color: #444;
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+/* Footer - Slightly Bigger */
+.rules-footer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 0.9rem;
+  max-width: 750px;
+  margin: 0 auto;
+}
+
+.footer-card {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(15px);
+  padding: 0.85rem;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 
+    0 3px 12px rgba(31, 38, 135, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.footer-card:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.45);
+  box-shadow: 
+    0 4px 16px rgba(31, 38, 135, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.footer-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.footer-content h4 {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #333;
+  margin: 0 0 0.2rem 0;
+  letter-spacing: 0.05px;
+}
+
+.footer-content p {
+  font-size: 0.75rem;
+  color: #555;
+  margin: 0;
+  line-height: 1.35;
+  font-weight: 400;
+}
+
+.footer-content strong {
+  color: #667eea;
+  font-weight: 500;
+}
+
+/* Responsive Design - Slightly Bigger Mobile Experience */
+@media (max-width: 768px) {
+  .rules-page {
+    padding: 0.8rem;
+  }
+  
+  .rules-header h1 {
+    font-size: 1.6rem;
+    font-weight: 400;
+  }
+  
+  .rules-header p {
+    font-size: 0.85rem;
+  }
+  
+  .rules-grid {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+  
+  .rule-card {
+    margin-bottom: 0;
+  }
+  
+  .rule-header {
+    padding: 0.7rem 0.9rem 0.3rem;
+  }
+  
+  .rule-header h3 {
+    font-size: 0.9rem;
+  }
+  
+  .rule-icon {
+    font-size: 1rem;
+  }
+  
+  .rule-content {
+    padding: 0.4rem 0.9rem 0.7rem;
+  }
+  
+  .rule-item {
+    margin-bottom: 0.4rem;
+  }
+  
+  .rule-text {
+    font-size: 0.75rem;
+  }
+  
+  .rule-bullet {
+    font-size: 0.8rem;
+  }
+  
+  .footer-card {
+    padding: 0.75rem;
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+  
+  .footer-icon {
+    font-size: 1.1rem;
+  }
+  
+  .footer-content h4 {
+    font-size: 0.8rem;
+  }
+  
+  .footer-content p {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .rules-page {
+    padding: 0.6rem;
+  }
+  
+  .rules-header h1 {
+    font-size: 1.4rem;
+  }
+  
+  .rules-header p {
+    font-size: 0.8rem;
+  }
+  
+  .rules-grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+  
+  .rule-header {
+    padding: 0.6rem 0.75rem 0.25rem;
+  }
+  
+  .rule-header h3 {
+    font-size: 0.85rem;
+  }
+  
+  .rule-icon {
+    font-size: 0.9rem;
+  }
+  
+  .rule-content {
+    padding: 0.35rem 0.75rem 0.6rem;
+  }
+  
+  .rule-text {
+    font-size: 0.7rem;
+  }
+  
+  .rule-bullet {
+    font-size: 0.75rem;
+  }
+  
+  .footer-card {
+    padding: 0.65rem;
+  }
+  
+  .footer-content h4 {
+    font-size: 0.75rem;
+  }
+  
+  .footer-content p {
+    font-size: 0.65rem;
+  }
+}
+
+/* Optimized Loading Animations for 6 Cards */
+.rule-card {
+  animation: compactSlideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  animation-fill-mode: both;
+}
+
+.rule-card:nth-child(1) { animation-delay: 0.05s; }
+.rule-card:nth-child(2) { animation-delay: 0.1s; }
+.rule-card:nth-child(3) { animation-delay: 0.15s; }
+.rule-card:nth-child(4) { animation-delay: 0.2s; }
+.rule-card:nth-child(5) { animation-delay: 0.25s; }
+.rule-card:nth-child(6) { animation-delay: 0.3s; }
+
+.footer-card {
+  animation: compactSlideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  animation-fill-mode: both;
+  animation-delay: 0.35s;
+}
+
+.footer-card:nth-child(2) {
+  animation-delay: 0.4s;
+}
+
+@keyframes compactSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Enhanced Focus States for All Categories */
+.rule-card:focus-within {
+  outline: none;
+  box-shadow: 
+    0 0 0 2px rgba(102, 126, 234, 0.25),
+    0 8px 24px rgba(31, 38, 135, 0.15);
+}
+
+.rule-card.marking:focus-within {
+  box-shadow: 
+    0 0 0 2px rgba(220, 53, 69, 0.25),
+    0 8px 24px rgba(220, 53, 69, 0.15);
+}
+
+.footer-card:focus-within {
+  outline: none;
+  box-shadow: 
+    0 0 0 2px rgba(102, 126, 234, 0.25),
+    0 6px 20px rgba(31, 38, 135, 0.12);
+}
+
+/* Glass Morphism Enhancement - Optimized */
+@supports (backdrop-filter: blur(15px)) {
+  .rule-card {
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(15px) saturate(160%);
+  }
+  
+  .footer-card {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(18px) saturate(160%);
+  }
+}
+
+/* Fallback for browsers without backdrop-filter support */
+@supports not (backdrop-filter: blur(15px)) {
+  .rule-card {
+    background: rgba(255, 255, 255, 0.8);
+  }
+  
+  .footer-card {
+    background: rgba(255, 255, 255, 0.75);
+  }
+}
