@@ -5,6 +5,7 @@ import Rules from './pages/Rules';
 import Schedule from './pages/Schedule';
 import About from './pages/About';
 import KeyMaps from './pages/KeyMaps';
+import Prizes from './pages/Prizes';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -53,6 +54,8 @@ function App() {
         return <About />;
       case 'keymaps':
         return <KeyMaps />;
+      case 'prizes':
+        return <Prizes />;
       case 'dashboard':
         return isLoggedIn ? <Dashboard userData={userData} /> : <Login onLogin={handleLogin} />;
       case 'login':
