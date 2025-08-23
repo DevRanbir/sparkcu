@@ -4,14 +4,28 @@ import './Dashboard.css';
 const Dashboard = ({ userData }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [timeRemaining, setTimeRemaining] = useState({});
+  const [presentationLink, setPresentationLink] = useState('');
+  const [additionalLinks, setAdditionalLinks] = useState([
+    { type: 'youtube', url: '', label: 'YouTube Video' },
+    { type: 'github', url: '', label: 'GitHub Repository' },
+    { type: 'other', url: '', label: 'Other Link' }
+  ]);
 
   // Use userData from props or fallback to default
   const userInfo = userData || {
     name: "John Doe",
     email: "john.doe@university.edu",
+    uid: "2021CS001",
+    mobile: "+91 9876543210",
     university: "Example University",
     teamName: "Code Innovators",
-    teamMembers: ["John Doe", "Jane Smith", "Mike Johnson", "Sarah Wilson"]
+    teamLeader: "John Doe",
+    teamMembers: [
+      { name: "John Doe", uid: "2021CS001", mobile: "+91 9876543210", role: "Team Leader" },
+      { name: "Jane Smith", uid: "2021CS002", mobile: "+91 9876543211", role: "Member" },
+      { name: "Mike Johnson", uid: "2021CS003", mobile: "+91 9876543212", role: "Member" },
+      { name: "Sarah Wilson", uid: "2021CS004", mobile: "+91 9876543213", role: "Member" }
+    ]
   };
 
   // Event date
@@ -39,56 +53,18 @@ const Dashboard = ({ userData }) => {
     return () => clearInterval(timer);
   }, [eventDate]);
 
-  const quickLinks = [
-    {
-      title: "Event Schedule",
-      description: "View the complete timeline of events",
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
-          <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2"/>
-          <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2"/>
-          <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2"/>
-        </svg>
-      ),
-      color: "#667eea"
-    },
-    {
-      title: "Competition Rules",
-      description: "Review guidelines and regulations",
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2"/>
-          <polyline points="14,2 14,8 20,8" stroke="currentColor" strokeWidth="2"/>
-          <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" strokeWidth="2"/>
-          <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" strokeWidth="2"/>
-          <polyline points="10,9 9,9 8,9" stroke="currentColor" strokeWidth="2"/>
-        </svg>
-      ),
-      color: "#764ba2"
-    },
-    {
-      title: "Resources",
-      description: "Access tools and helpful materials",
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" stroke="currentColor" strokeWidth="2"/>
-          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" stroke="currentColor" strokeWidth="2"/>
-        </svg>
-      ),
-      color: "#28a745"
-    },
-    {
-      title: "Contact Support",
-      description: "Get help from organizers",
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2"/>
-        </svg>
-      ),
-      color: "#17a2b8"
-    }
-  ];
+  const handleLinkChange = (index, value) => {
+    const updatedLinks = [...additionalLinks];
+    updatedLinks[index].url = value;
+    setAdditionalLinks(updatedLinks);
+  };
+
+  const handleSaveLinks = () => {
+    // Here you would typically save to backend
+    console.log('Presentation Link:', presentationLink);
+    console.log('Additional Links:', additionalLinks);
+    alert('Links saved successfully!');
+  };
 
   const announcements = [
     {
@@ -107,8 +83,8 @@ const Dashboard = ({ userData }) => {
     },
     {
       id: 3,
-      title: "Mentor List Updated",
-      message: "The list of available mentors has been updated. Check the resources section for details.",
+      title: "Submission Guidelines Updated",
+      message: "Please ensure your presentation links are submitted through the dashboard before the deadline.",
       timestamp: "3 days ago",
       type: "update"
     }
@@ -122,7 +98,7 @@ const Dashboard = ({ userData }) => {
       </div>
 
       <div className="dashboard-content">
-        {/* Countdown Timer */}
+        {/* Event Countdown */}
         <div className="countdown-section">
           <h2>Event Countdown</h2>
           <div className="countdown-timer">
@@ -145,63 +121,90 @@ const Dashboard = ({ userData }) => {
           </div>
         </div>
 
-        {/* Registration Status */}
-        <div className="registration-status">
-          <h2>Registration Status</h2>
-          <div className="status-card confirmed">
-            <div className="status-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="2"/>
-              </svg>
+        {/* Team Information */}
+        <div className="team-section">
+          <h2>Team Information</h2>
+          <div className="team-overview">
+            <div className="team-header">
+              <h3>{userInfo.teamName}</h3>
+              <span className="team-size-badge">{userInfo.teamMembers.length} Members</span>
             </div>
-            <div className="status-content">
-              <h3>Registration Confirmed</h3>
-              <p>You're all set for SparkCU Ideathon!</p>
+            
+            <div className="team-members-grid">
+              {userInfo.teamMembers.map((member, index) => (
+                <div key={index} className={`member-card ${member.role === 'Team Leader' ? 'leader' : ''}`}>
+                  <div className="member-info">
+                    <div className="member-header">
+                      <h4 className="member-name">{member.name}</h4>
+                      <span className={`member-status ${member.role === 'Team Leader' ? 'leader' : 'member'}`}>
+                        {member.role === 'Team Leader' ? '👑 Team Leader' : '👤 Member'}
+                      </span>
+                    </div>
+                    
+                    <div className="member-details">
+                      <div className="detail-item">
+                        <span className="detail-label">UID:</span>
+                        <span className="detail-value">{member.uid}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Contact:</span>
+                        <span className="detail-value">{member.mobile}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Team Information */}
-        {userInfo.teamName && (
-          <div className="team-info">
-            <h2>Team Information</h2>
-            <div className="team-card">
-              <div className="team-header">
-                <h3>{userInfo.teamName}</h3>
-                <span className="team-size">{userInfo.teamMembers.length} members</span>
-              </div>
-              <div className="team-members">
-                <h4>Team Members:</h4>
-                <ul>
-                  {userInfo.teamMembers.map((member, index) => (
-                    <li key={index}>{member}</li>
-                  ))}
-                </ul>
-              </div>
+        {/* Submission Links */}
+        <div className="submission-section">
+          <h2>Project Submission</h2>
+          <div className="submission-form">
+            <div className="form-group">
+              <label htmlFor="presentationLink">
+                <span className="required">*</span> Google Drive Presentation Link
+              </label>
+              <input
+                type="url"
+                id="presentationLink"
+                value={presentationLink}
+                onChange={(e) => setPresentationLink(e.target.value)}
+                placeholder="https://drive.google.com/file/d/your-presentation-id/view"
+                required
+              />
+              <small className="form-hint">
+                Make sure your presentation is set to "Anyone with the link can view"
+              </small>
             </div>
-          </div>
-        )}
 
-        {/* Quick Links */}
-        <div className="quick-links">
-          <h2>Quick Links</h2>
-          <div className="links-grid">
-            {quickLinks.map((link, index) => (
-              <div key={index} className="link-card" style={{ borderLeftColor: link.color }}>
-                <div className="link-icon" style={{ color: link.color }}>
-                  {link.icon}
+            <div className="additional-links">
+              <h3>Additional Resources (Optional)</h3>
+              {additionalLinks.map((link, index) => (
+                <div key={index} className="form-group">
+                  <label htmlFor={`link-${index}`}>
+                    {link.label}
+                  </label>
+                  <input
+                    type="url"
+                    id={`link-${index}`}
+                    value={link.url}
+                    onChange={(e) => handleLinkChange(index, e.target.value)}
+                    placeholder={`Enter your ${link.label.toLowerCase()} URL`}
+                  />
                 </div>
-                <div className="link-content">
-                  <h3>{link.title}</h3>
-                  <p>{link.description}</p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            <button className="save-button" onClick={handleSaveLinks}>
+              Save Submission Links
+            </button>
           </div>
         </div>
 
         {/* Announcements */}
-        <div className="announcements">
+        <div className="announcements-section">
           <h2>Announcements</h2>
           <div className="announcements-list">
             {announcements.map((announcement) => (
@@ -213,28 +216,6 @@ const Dashboard = ({ userData }) => {
                 <p>{announcement.message}</p>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Event Details */}
-        <div className="event-details">
-          <h2>Event Details</h2>
-          <div className="details-grid">
-            <div className="detail-card">
-              <h4>Date & Time</h4>
-              <p>December 15, 2024</p>
-              <p>9:00 AM - 11:00 PM</p>
-            </div>
-            <div className="detail-card">
-              <h4>Venue</h4>
-              <p>University Innovation Center</p>
-              <p>123 Campus Drive</p>
-            </div>
-            <div className="detail-card">
-              <h4>Contact</h4>
-              <p>sparkcu@university.edu</p>
-              <p>(555) 123-4567</p>
-            </div>
           </div>
         </div>
       </div>
