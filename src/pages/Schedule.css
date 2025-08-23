@@ -2,7 +2,7 @@
 .schedule-page {
   min-height: 100vh;
   background-size: 40px 40px;
-  padding: 2rem;
+  padding: 3rem;
 }
 
 .schedule-header {
@@ -256,49 +256,18 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .schedule-page {
-    padding: 1rem;
+  .schedule-header {
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
   }
   
-  .schedule-header h1 {
-    font-size: 2.5rem;
-  }
-  
-  .timeline {
-    padding-left: 1.5rem;
-  }
-  
-  .timeline::before {
-    left: 15px;
-  }
-  
-  .timeline-item {
-    padding-left: 2.5rem;
-  }
-  
-  .timeline-marker {
-    left: -1.75rem;
-    width: 30px;
-    height: 30px;
-  }
-  
-  .timeline-content {
-    padding: 1rem;
-  }
-  
-  .timeline-event {
-    font-size: 1.2rem;
-  }
-  
-  .schedule-footer {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-}
-
-@media (max-width: 480px) {
   .schedule-header h1 {
     font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .schedule-header p {
+    font-size: 1rem;
   }
   
   .timeline {
@@ -306,29 +275,274 @@
   }
   
   .timeline::before {
-    left: 10px;
+    left: 12px;
+    width: 1.5px;
   }
   
   .timeline-item {
     padding-left: 2rem;
+    margin-bottom: 1.25rem;
   }
   
   .timeline-marker {
-    left: -1.5rem;
-    width: 25px;
-    height: 25px;
+    left: -1.25rem;
+    width: 24px;
+    height: 24px;
+    border-width: 2px;
+  }
+  
+  .timeline-icon svg {
+    width: 16px;
+    height: 16px;
   }
   
   .timeline-content {
     padding: 0.75rem;
+    border-radius: 8px;
+  }
+  
+  .timeline-content:hover {
+    transform: none;
+  }
+  
+  .timeline-time {
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
   }
   
   .timeline-event {
     font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.3;
+  }
+  
+  .timeline-description {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+  }
+  
+  .timeline-location {
+    font-size: 0.8rem;
+    gap: 0.25rem;
+  }
+  
+  .timeline-location svg {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .schedule-footer {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-top: 1.5rem;
   }
   
   .schedule-notes,
   .venue-info {
-    padding: 1.5rem;
+    padding: 1rem;
+    border-radius: 8px;
+  }
+  
+  .schedule-notes h3,
+  .venue-info h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .schedule-notes li {
+    padding: 0.25rem 0;
+    padding-left: 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  
+  .schedule-header {
+    margin-bottom: 1rem;
+    padding: 0 0.25rem;
+  }
+  
+  .schedule-header h1 {
+    font-size: 1.6rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .schedule-header p {
+    font-size: 0.9rem;
+  }
+  
+  .timeline {
+    padding-left: 0.75rem;
+  }
+  
+  .timeline::before {
+    left: 8px;
+    width: 1px;
+  }
+  
+  .timeline-item {
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .timeline-marker {
+    left: -1rem;
+    width: 18px;
+    height: 18px;
+    border-width: 1.5px;
+  }
+  
+  .timeline-icon svg {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .timeline-content {
+    padding: 0.6rem;
+    border-radius: 6px;
+  }
+  
+  .timeline-time {
+    font-size: 0.8rem;
+    margin-bottom: 0.2rem;
+    font-weight: 700;
+  }
+  
+  .timeline-event {
+    font-size: 1rem;
+    margin-bottom: 0.2rem;
+    line-height: 1.2;
+  }
+  
+  .timeline-description {
+    font-size: 0.8rem;
+    margin-bottom: 0.4rem;
+    line-height: 1.3;
+  }
+  
+  .timeline-location {
+    font-size: 0.75rem;
+    gap: 0.2rem;
+  }
+  
+  .timeline-location svg {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .schedule-footer {
+    margin-top: 1rem;
+    gap: 0.75rem;
+  }
+  
+  .schedule-notes,
+  .venue-info {
+    padding: 0.75rem;
+    border-radius: 6px;
+    border-left-width: 3px;
+  }
+  
+  .schedule-notes h3,
+  .venue-info h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .schedule-notes li {
+    padding: 0.2rem 0;
+    padding-left: 0.8rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+  
+  .venue-info p {
+    font-size: 0.8rem;
+    line-height: 1.4;
+    margin-bottom: 0.3rem;
+  }
+}
+
+/* Extra small screens - ultra compact */
+@media (max-width: 360px) {
+  .schedule-page {
+    padding: 0.2rem;
+  }
+  
+  .schedule-header h1 {
+    font-size: 1.4rem;
+  }
+  
+  .schedule-header p {
+    font-size: 0.8rem;
+  }
+  
+  .timeline {
+    padding-left: 0.5rem;
+  }
+  
+  .timeline::before {
+    left: 6px;
+  }
+  
+  .timeline-item {
+    padding-left: 1.25rem;
+    margin-bottom: 0.8rem;
+  }
+  
+  .timeline-marker {
+    left: -0.75rem;
+    width: 16px;
+    height: 16px;
+  }
+  
+  .timeline-icon svg {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .timeline-content {
+    padding: 0.5rem;
+  }
+  
+  .timeline-time {
+    font-size: 0.75rem;
+  }
+  
+  .timeline-event {
+    font-size: 0.9rem;
+  }
+  
+  .timeline-description {
+    font-size: 0.75rem;
+  }
+  
+  .timeline-location {
+    font-size: 0.7rem;
+  }
+  
+  .timeline-location svg {
+    width: 8px;
+    height: 8px;
+  }
+  
+  .schedule-notes,
+  .venue-info {
+    padding: 0.6rem;
+  }
+  
+  .schedule-notes h3,
+  .venue-info h3 {
+    font-size: 1rem;
+  }
+  
+  .schedule-notes li {
+    font-size: 0.75rem;
+    padding-left: 0.6rem;
+  }
+  
+  .venue-info p {
+    font-size: 0.75rem;
   }
 }

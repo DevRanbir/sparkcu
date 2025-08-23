@@ -28,6 +28,10 @@ function Homepage() {
 
   const handleVideoEnded = () => {
     setIsPlaying(false);
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0; // Reset to beginning to show thumbnail
+      videoRef.current.load(); // Reload the video to show the poster/thumbnail
+    }
     console.log('Video finished playing');
   };
 
@@ -37,13 +41,13 @@ function Homepage() {
         {/* Hero Section */}
         <div className="hero-section">
           <h1 className="main-title">
-            SparkCU{' '}
+            CuSpark{' '}
             <RotatingText
               texts={[
                 "Ideathon",
-                "Innovation",
-                "Competition",
-                "Challenge"
+                "Innovate",
+                "Hackfest",
+                "Workshop"
               ]}
               staggerFrom={"last"}
               initial={{ y: "-150%" }}
@@ -51,7 +55,7 @@ function Homepage() {
               staggerDuration={0.025}
               splitLevelClassName="overflow-hidden pb-0.5 sm:pb-1 md:pb-1"
               transition={{ type: "spring", damping: 30, stiffness: 400 }}
-              rotationInterval={9000}
+              rotationInterval={5000}
             />
           </h1>
           <p className="hero-subtitle">Hackathon-style competition for 1st & 2nd year CSE students</p>

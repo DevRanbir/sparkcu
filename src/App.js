@@ -44,7 +44,7 @@ function AppContent() {
     setUserData(null);
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userData');
-    navigate('/homepage');
+    navigate('/home');
   };
 
   const handleNavigation = (page) => {
@@ -61,7 +61,7 @@ function AppContent() {
       />
       <div className="main-content">
         <Routes>
-          <Route path="/homepage" element={<Homepage />} />
+          <Route path="/home" element={<Homepage />} />
           <Route path="/rules" element={<Rules />} />
           <Route path="/schedule" element={<Schedule />} />
           <Route path="/about" element={<About />} />
@@ -73,8 +73,8 @@ function AppContent() {
           />
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/" element={<Navigate to="/homepage" />} />
-          <Route path="*" element={<Navigate to="/homepage" />} />
+          <Route path="/" element={<Navigate to="/home" />} />
+          <Route path="*" element={<Navigate to="/home" />} />
         </Routes>
       </div>
       <Footer />
@@ -84,7 +84,7 @@ function AppContent() {
 
 function App() {
   return (
-    <Router basename="/cuSpark">
+    <Router>
       <AppContent />
     </Router>
   );

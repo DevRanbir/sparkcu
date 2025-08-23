@@ -298,60 +298,395 @@
 @media (max-width: 768px) {
   .prizes-content {
     padding: 1rem;
+    gap: 1.5rem;
   }
   
   .prizes-title {
     font-size: 2.2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .prizes-subtitle {
+    font-size: 1.1rem;
+  }
+  
+  /* Optimize Lottie animation for mobile */
+  .lottie-container {
+    max-width: 80%;
+    height: 50vh;
+    margin: -2rem auto;
+  }
+  
+  .prizes-grid {
+    gap: 1.5rem;
+  }
+  
+  .prize-category {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+  
+  .category-title {
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+  }
+  
+  .prize-cards {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .prize-card {
+    padding: 1.25rem;
+  }
+  
+  .prize-card:hover {
+    transform: scale(1.02);
+  }
+  
+  .prize-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .prize-card h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .prize-card p {
+    font-size: 1rem;
+  }
+  
+  /* Coding rewards - stack vertically on mobile */
+  .reward-item {
+    flex-direction: row;
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+  
+  .reward-item:hover {
+    transform: translateX(3px);
+  }
+  
+  .reward-icon {
+    font-size: 1.8rem;
+  }
+  
+  .reward-details h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .reward-details p {
+    font-size: 0.95rem;
+  }
+  
+  /* Universal rewards */
+  .universal-items {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .universal-item {
+    flex-direction: row;
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+  
+  .universal-item:hover {
+    transform: scale(1.01);
+  }
+  
+  .universal-icon {
+    font-size: 2rem;
+  }
+  
+  .universal-details h4 {
+    font-size: 1.2rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .universal-details p {
+    font-size: 1rem;
+  }
+  
+  /* Special recognition */
+  .special-item {
+    flex-direction: row;
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+  
+  .special-item:hover {
+    transform: translateX(3px);
+  }
+  
+  .special-icon {
+    font-size: 1.8rem;
+  }
+  
+  .special-details h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .special-details p {
+    font-size: 0.95rem;
+  }
+  
+  .bonus-note {
+    padding: 0.75rem;
+    margin-top: 0.75rem;
+  }
+  
+  .bonus-note p {
+    font-size: 0.9rem;
+  }
+  
+  .prizes-footer {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+  }
+  
+  .footer-note {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .prizes-content {
+    padding: 0.75rem;
+    gap: 1rem;
+  }
+  
+  .prizes-title {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
   }
   
   .prizes-subtitle {
     font-size: 1rem;
   }
   
-  .prize-category {
-    padding: 1.5rem;
-  }
-  
-  .category-title {
-    font-size: 1.5rem;
-  }
-  
-  .prize-cards {
-    grid-template-columns: 1fr;
-  }
-  
-  .universal-items {
-    grid-template-columns: 1fr;
-  }
-  
-  .reward-item,
-  .universal-item,
-  .special-item {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .reward-icon,
-  .universal-icon,
-  .special-icon {
-    margin-bottom: 0.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .prizes-title {
-    font-size: 1.8rem;
-  }
-  
-  .prizes-subtitle {
-    font-size: 0.9rem;
+  /* Make Lottie even more compact on small screens */
+  .lottie-container {
+    max-width: 60%;
+    height: 60vh;
+    margin-top: -12rem;
+    margin-bottom: -11rem;
   }
   
   .prize-category {
     padding: 1rem;
+    border-radius: 10px;
   }
   
   .category-title {
     font-size: 1.3rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+  }
+  
+  .prize-cards {
+    gap: 0.75rem;
+  }
+  
+  .prize-card {
+    padding: 1rem;
+  }
+  
+  .prize-icon {
+    font-size: 2.2rem;
+    margin-bottom: 0.6rem;
+  }
+  
+  .prize-card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.4rem;
+  }
+  
+  .prize-card p {
+    font-size: 0.95rem;
+  }
+  
+  /* Coding rewards - more compact */
+  .coding-rewards {
+    gap: 0.75rem;
+  }
+  
+  .reward-item {
+    padding: 0.75rem;
+    gap: 0.6rem;
+  }
+  
+  .reward-icon {
+    font-size: 1.6rem;
+  }
+  
+  .reward-details h4 {
+    font-size: 1rem;
+    margin-bottom: 0.2rem;
+  }
+  
+  .reward-details p {
+    font-size: 0.9rem;
+    line-height: 1.3;
+  }
+  
+  /* Universal rewards - more compact */
+  .universal-items {
+    gap: 0.75rem;
+  }
+  
+  .universal-item {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+  
+  .universal-icon {
+    font-size: 1.8rem;
+  }
+  
+  .universal-details h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.2rem;
+  }
+  
+  .universal-details p {
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+  
+  /* Special recognition - more compact */
+  .special-items {
+    gap: 0.75rem;
+  }
+  
+  .special-item {
+    padding: 0.75rem;
+    gap: 0.6rem;
+  }
+  
+  .special-icon {
+    font-size: 1.6rem;
+  }
+  
+  .special-details h4 {
+    font-size: 1rem;
+    margin-bottom: 0.2rem;
+  }
+  
+  .special-details p {
+    font-size: 0.9rem;
+    line-height: 1.3;
+  }
+  
+  .bonus-note {
+    padding: 0.6rem;
+    margin-top: 0.6rem;
+  }
+  
+  .bonus-note p {
+    font-size: 0.85rem;
+  }
+  
+  .prizes-footer {
+    margin-top: 1rem;
+    padding: 1rem;
+  }
+  
+  .footer-note {
+    font-size: 0.95rem;
+  }
+}
+
+/* Extra small screens - keep text readable */
+@media (max-width: 360px) {
+  .prizes-content {
+    padding: 0.5rem;
+    gap: 0.75rem;
+  }
+  
+  .prizes-title {
+    font-size: 1.6rem;
+  }
+  
+  .prizes-subtitle {
+    font-size: 0.95rem;
+  }
+  
+  .lottie-container {
+    height: 35vh;
+    margin: -0.5rem auto;
+  }
+  
+  .prize-category {
+    padding: 0.75rem;
+  }
+  
+  .category-title {
+    font-size: 1.2rem;
+    margin-bottom: 0.6rem;
+  }
+  
+  .prize-card {
+    padding: 0.75rem;
+  }
+  
+  .prize-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .prize-card h3 {
+    font-size: 1rem;
+  }
+  
+  .prize-card p {
+    font-size: 0.9rem;
+  }
+  
+  .reward-item,
+  .special-item {
+    padding: 0.6rem;
+    gap: 0.5rem;
+  }
+  
+  .reward-icon,
+  .special-icon {
+    font-size: 1.4rem;
+  }
+  
+  .reward-details h4,
+  .special-details h4 {
+    font-size: 0.95rem;
+  }
+  
+  .reward-details p,
+  .special-details p {
+    font-size: 0.85rem;
+  }
+  
+  .universal-item {
+    padding: 0.75rem;
+    gap: 0.6rem;
+  }
+  
+  .universal-icon {
+    font-size: 1.6rem;
+  }
+  
+  .universal-details h4 {
+    font-size: 1rem;
+  }
+  
+  .universal-details p {
+    font-size: 0.9rem;
+  }
+  
+  .footer-note {
+    font-size: 0.9rem;
   }
 }

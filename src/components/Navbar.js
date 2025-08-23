@@ -3,7 +3,7 @@ import './Navbar.css';
 
 function Navbar({ currentPage, setCurrentPage }) {
   const navItems = [
-    { id: 'homepage', label: 'Home' },
+    { id: 'home', label: 'Home' },
     { id: 'rules', label: 'Rules' },
     { id: 'schedule', label: 'Schedule' },
     { id: 'dashboard', label: 'Dashboard' }
