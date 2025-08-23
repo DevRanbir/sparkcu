@@ -1,8 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './Sidebar.css';
 
-function Sidebar({ currentPage, setCurrentPage, isLoggedIn, onLogout }) {
+function Sidebar({ currentPath, onNavigate, isLoggedIn, onLogout }) {
   const [hoveredItem, setHoveredItem] = useState(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showMobileDropdown, setShowMobileDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowMobileDropdown(false);
+      }
+    };
+
+    if (showMobileDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMobileDropdown]);
 
   const baseSidebarItems = [
     { 
@@ -96,12 +116,11 @@ function Sidebar({ currentPage, setCurrentPage, isLoggedIn, onLogout }) {
     {
       id: 'login', 
       icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <polyline points="10,17 15,12 10,7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <line x1="15" y1="12" x2="3" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0 0a8.949 8.949 0 0 0 4.951-1.488A3.987 3.987 0 0 0 13 16h-2a3.987 3.987 0 0 0-3.951 3.512A8.948 8.948 0 0 0 12 21Zm3-11a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
         </svg>
-      ), 
+
+      ),
       title: 'Login' 
     }];
 
@@ -112,10 +131,8 @@ function Sidebar({ currentPage, setCurrentPage, isLoggedIn, onLogout }) {
     sidebarItems.push({
       id: 'logout',
       icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <polyline points="16,17 21,12 16,7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12h4M4 18v-1a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Zm8-10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
         </svg>
       ),
       title: 'Logout'
@@ -124,36 +141,157 @@ function Sidebar({ currentPage, setCurrentPage, isLoggedIn, onLogout }) {
 
   const handleItemClick = (itemId) => {
     if (itemId === 'logout') {
-      onLogout();
+      setShowLogoutConfirm(true);
+    } else if (itemId === 'more') {
+      setShowMobileDropdown(!showMobileDropdown);
     } else {
-      setCurrentPage(itemId);
+      onNavigate(itemId);
+      setShowMobileDropdown(false); // Close dropdown when navigating
     }
   };
+
+  const handleLogoutConfirm = () => {
+    setShowLogoutConfirm(false);
+    onLogout();
+  };
+
+  const handleLogoutCancel = () => {
+    setShowLogoutConfirm(false);
+  };
+
+  // Get current page from path
+  const getCurrentPage = () => {
+    const pathParts = currentPath.split('/');
+    return pathParts[pathParts.length - 1] || 'homepage';
+  };
+
+  const currentPage = getCurrentPage();
+
+  // Split items for mobile view
+  const allItems = [...baseSidebarItems, ...authItems];
+  if (isLoggedIn) {
+    allItems.push({
+      id: 'logout',
+      icon: (
+        <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+          <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12h4M4 18v-1a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Zm8-10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+        </svg>
+      ),
+      title: 'Logout'
+    });
+  }
+
+  const mobileVisibleItems = allItems.slice(0, 5);
+  const mobileHiddenItems = allItems.slice(5);
+  
+  // Create more button if there are hidden items
+  const moreButton = mobileHiddenItems.length > 0 ? {
+    id: 'more',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 14L12 9L17 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+    title: 'More'
+  } : null;
+
+  const mobileDisplayItems = moreButton ? [...mobileVisibleItems.slice(0, 4), moreButton] : mobileVisibleItems;
 
   return (
     <div className="sidebar-container">
       <div className="sidebar">
         <div className="sidebar-content">
-          {sidebarItems.map((item) => (
-            <div
-              key={item.id}
-              className={`sidebar-item ${currentPage === item.id ? 'active' : ''}`}
-              onClick={() => handleItemClick(item.id)}
-              onMouseEnter={() => setHoveredItem(item.id)}
-              onMouseLeave={() => setHoveredItem(null)}
-            >
-              <span className="sidebar-icon">{item.icon}</span>
-              
-              {/* Custom Tooltip */}
-              {hoveredItem === item.id && (
-                <div className="sidebar-tooltip">
-                  {item.title}
-                </div>
-              )}
-            </div>
-          ))}
+          {/* Desktop: Show all items */}
+          <div className="desktop-items">
+            {allItems.map((item) => (
+              <div
+                key={item.id}
+                className={`sidebar-item ${currentPage === item.id ? 'active' : ''}`}
+                onClick={() => handleItemClick(item.id)}
+                onMouseEnter={() => setHoveredItem(item.id)}
+                onMouseLeave={() => setHoveredItem(null)}
+              >
+                <span className="sidebar-icon">{item.icon}</span>
+                
+                {/* Custom Tooltip */}
+                {hoveredItem === item.id && (
+                  <div className="sidebar-tooltip">
+                    {item.title}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile: Show limited items with dropdown */}
+          <div className="mobile-items">
+            {mobileDisplayItems.map((item) => (
+              <div
+                key={item.id}
+                className={`sidebar-item ${currentPage === item.id ? 'active' : ''} ${item.id === 'more' ? 'more-button' : ''}`}
+                onClick={() => handleItemClick(item.id)}
+                onMouseEnter={() => setHoveredItem(item.id)}
+                onMouseLeave={() => setHoveredItem(null)}
+              >
+                <span className="sidebar-icon">{item.icon}</span>
+                
+                {/* Custom Tooltip */}
+                {hoveredItem === item.id && (
+                  <div className="sidebar-tooltip">
+                    {item.title}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* Mobile Dropdown Menu */}
+        {showMobileDropdown && mobileHiddenItems.length > 0 && (
+          <div className="mobile-dropdown" ref={dropdownRef}>
+            <div className="mobile-dropdown-content">
+              {mobileHiddenItems.map((item) => (
+                <div
+                  key={item.id}
+                  className={`mobile-dropdown-item ${currentPage === item.id ? 'active' : ''}`}
+                  onClick={() => handleItemClick(item.id)}
+                >
+                  <span className="dropdown-icon">{item.icon}</span>
+                  <span className="dropdown-title">{item.title}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="logout-modal-overlay">
+          <div className="logout-modal">
+            <div className="logout-modal-header">
+              <h3>Confirm Logout</h3>
+            </div>
+            <div className="logout-modal-content">
+              <p>Are you sure you want to logout?</p>
+            </div>
+            <div className="logout-modal-actions">
+              <button 
+                className="logout-cancel-btn" 
+                onClick={handleLogoutCancel}
+              >
+                Cancel
+              </button>
+              <button 
+                className="logout-confirm-btn" 
+                onClick={handleLogoutConfirm}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

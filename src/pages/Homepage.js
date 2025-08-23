@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import './Homepage.css';
-import RotatingText from './TextAnimations/RotatingText/RotatingText';
+import RotatingText from '../TextAnimations/RotatingText/RotatingText';
 
 function Homepage() {
   const videoRef = useRef(null);
@@ -59,11 +60,11 @@ function Homepage() {
 
         {/* Navigation Links */}
         <div className="nav-links">
-          <a href="#register" className="nav-link">Register</a>
-          <a href="#login" className="nav-link">Login</a>
-          <a href="#schedule" className="nav-link">Schedule</a>
-          <a href="#rules" className="nav-link">Rules</a>
-          <a href="#about" className="nav-link">About</a>
+          <Link to="/register" className="nav-link">Register</Link>
+          <Link to="/login" className="nav-link">Login</Link>
+          <Link to="/schedule" className="nav-link">Schedule</Link>
+          <Link to="/rules" className="nav-link">Rules</Link>
+          <Link to="/about" className="nav-link">About</Link>
         </div>
 
         {/* Main Content */}
@@ -76,6 +77,20 @@ function Homepage() {
               <span className="feature">Ideas & Innovation</span>
               <span className="feature">Team Competition</span>
               <span className="feature">Expert Mentorship</span>
+            </div>
+          </section>
+
+          <section className="video-section">
+            <h2>Watch SparkCU Highlights</h2>
+            <div className="youtube-container">
+              <iframe
+                className="youtube-video"
+                src="https://www.youtube.com/embed/CF_-ykCpcUU?si=P4Yo8ZJlvQonS6M-&cc_load_policy=1&hd=1&rel=0&modestbranding=1&iv_load_policy=3"
+                title="SparkCU Competition Highlights"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              ></iframe>
             </div>
           </section>
 
@@ -189,25 +204,34 @@ function Homepage() {
             </div>
             
             <div className="action-section">
-              <button className="primary-btn">Join the Competition</button>
+              <Link to="/register" className="primary-btn">Join the Competition</Link>
             </div>
           </section>
         </div>
         
-        <div className="video-container">
-          <video
-            ref={videoRef}
-            className="center-video"
-            muted
-            playsInline
-            onClick={handleVideoClick}
-            onEnded={handleVideoEnded}
-            style={{ cursor: isPlaying ? 'default' : 'pointer' }}
-          >
-            <source src="/video1.mp4" type="video/mp4" />
-            <source src="/your-video.webm" type="video/webm" />
-            Your browser does not support the video tag.
-          </video>
+        <div className="media-container">
+          <div className="video-container">
+            <video
+              ref={videoRef}
+              className="center-video"
+              muted
+              playsInline
+              onClick={handleVideoClick}
+              onEnded={handleVideoEnded}
+              style={{ cursor: isPlaying ? 'default' : 'pointer' }}
+            >
+              <source src="/video1.mp4" type="video/mp4" />
+              <source src="/your-video.webm" type="video/webm" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+          <div className="image-container">
+            <img 
+              src="/culogo.png" 
+              alt="SparkCU Competition" 
+              className="side-image"
+            />
+          </div>
         </div>
       </div>
     </div>

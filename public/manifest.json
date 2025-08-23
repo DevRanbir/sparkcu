@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "cuSpark",
+  "name": "cuSpark - University Competition Platform",
+  "description": "Official platform for cuSpark Ideathon 2025-26 - University Competition & Events",
   "icons": [
     {
       "src": "favicon.ico",
@@ -18,8 +19,12 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": ".",
+  "start_url": "/cuSpark/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#1a1a2e",
+  "background_color": "#0f0f23",
+  "scope": "/cuSpark/",
+  "orientation": "portrait-primary",
+  "categories": ["education", "productivity", "business"],
+  "lang": "en-US"
 }

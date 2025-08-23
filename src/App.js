@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
-import Homepage from './Homepage';
+import Homepage from './pages/Homepage';
 import Rules from './pages/Rules';
 import Schedule from './pages/Schedule';
 import About from './pages/About';
@@ -12,10 +13,12 @@ import Register from './pages/Register';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 
-function App() {
-  const [currentPage, setCurrentPage] = useState('homepage');
+// Component to handle the main app content with routing
+function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Check for existing login on app load
   useEffect(() => {
@@ -31,7 +34,9 @@ function App() {
   const handleLogin = (user) => {
     setIsLoggedIn(true);
     setUserData(user);
-    setCurrentPage('dashboard');
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('userData', JSON.stringify(user));
+    navigate('/dashboard');
   };
 
   const handleLogout = () => {
@@ -39,47 +44,49 @@ function App() {
     setUserData(null);
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userData');
-    setCurrentPage('homepage');
+    navigate('/homepage');
   };
 
-  const renderCurrentPage = () => {
-    switch (currentPage) {
-      case 'homepage':
-        return <Homepage />;
-      case 'rules':
-        return <Rules />;
-      case 'schedule':
-        return <Schedule />;
-      case 'about':
-        return <About />;
-      case 'keymaps':
-        return <KeyMaps />;
-      case 'prizes':
-        return <Prizes />;
-      case 'dashboard':
-        return isLoggedIn ? <Dashboard userData={userData} /> : <Login onLogin={handleLogin} />;
-      case 'login':
-        return <Login onLogin={handleLogin} />;
-      case 'register':
-        return <Register />;
-      default:
-        return <Homepage />;
-    }
+  const handleNavigation = (page) => {
+    navigate(`/${page}`);
   };
 
   return (
     <div className="App">
       <Sidebar 
-        currentPage={currentPage} 
-        setCurrentPage={setCurrentPage}
+        currentPath={location.pathname}
+        onNavigate={handleNavigation}
         isLoggedIn={isLoggedIn}
         onLogout={handleLogout}
       />
       <div className="main-content">
-        {renderCurrentPage()}
+        <Routes>
+          <Route path="/homepage" element={<Homepage />} />
+          <Route path="/rules" element={<Rules />} />
+          <Route path="/schedule" element={<Schedule />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/keymaps" element={<KeyMaps />} />
+          <Route path="/prizes" element={<Prizes />} />
+          <Route 
+            path="/dashboard" 
+            element={isLoggedIn ? <Dashboard userData={userData} /> : <Navigate to="/login" />} 
+          />
+          <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/" element={<Navigate to="/homepage" />} />
+          <Route path="*" element={<Navigate to="/homepage" />} />
+        </Routes>
       </div>
       <Footer />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Router basename="/cuSpark">
+      <AppContent />
+    </Router>
   );
 }
 

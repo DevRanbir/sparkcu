@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import './About.css';
 
@@ -15,17 +15,17 @@ function About() {
     setNumPages(numPages);
   }
 
-  const nextPage = () => {
+  const nextPage = useCallback(() => {
     if (currentPage < numPages) {
       setCurrentPage(currentPage + 1);
     }
-  };
+  }, [currentPage, numPages]);
 
-  const prevPage = () => {
+  const prevPage = useCallback(() => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
-  };
+  }, [currentPage]);
 
   const toggleViewMode = () => {
     setViewMode(viewMode === 'single' ? 'list' : 'single');
@@ -84,7 +84,7 @@ function About() {
     return () => {
       document.removeEventListener('keydown', handleKeyPress);
     };
-  }, [isFullscreen, currentPage, numPages]);
+  }, [isFullscreen, currentPage, numPages, nextPage, prevPage]);
 
   // Cleanup scrollbar styles on component unmount
   React.useEffect(() => {
