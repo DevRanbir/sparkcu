@@ -1,0 +1,160 @@
+.keymaps {
+  min-height: 100vh;
+  width: 100%;
+  background: transparent;
+  position: relative;
+}
+
+.keymaps-content {
+  padding: 2rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.keymaps-header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.keymaps-title {
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: #2c3e50;
+  margin: 0;
+  margin-bottom: 0.5rem;
+  letter-spacing: 1px;
+}
+
+.keymaps-subtitle {
+  font-size: 1rem;
+  color: #7f8c8d;
+  margin: 0;
+  font-weight: 300;
+}
+
+.mindmap-container {
+  flex: 1;
+  min-height: 70vh;
+  background: transparent;
+  border: 2px solid #000000;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  padding: 0;
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.1);
+}
+
+.mindmap-svg {
+  width: 100%;
+  height: 85vh;
+  background: transparent;
+  display: block;
+}
+
+/* Markmap specific styles */
+.markmap-node {
+  cursor: pointer;
+}
+
+.markmap-foreign {
+  display: inline-block;
+  font: 12px sans-serif;
+  line-height: 1.2;
+}
+
+.markmap-foreign a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.markmap-foreign a:hover {
+  color: #0056b3;
+}
+
+.markmap-foreign strong {
+  font-weight: 600;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: #7f8c8d;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ecf0f1;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.mindmap-controls {
+  text-align: center;
+  padding: 1rem;
+  border-top: 2px solid #34495e;
+  background: rgba(52, 73, 94, 0.05);
+}
+
+.control-hint {
+  color: #34495e;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .keymaps-content {
+    padding: 1rem;
+  }
+  
+  .keymaps-title {
+    font-size: 2rem;
+  }
+  
+  .mindmap-container {
+    min-height: 60vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .keymaps-title {
+    font-size: 1.8rem;
+  }
+  
+  .mindmap-container {
+    min-height: 50vh;
+  }
+}
+
+/* Dark theme support for markmap */
+.markmap-dark .keymaps-title {
+  color: #ecf0f1;
+}
+
+.markmap-dark .keymaps-subtitle {
+  color: #95a5a6;
+}
+
+.markmap-dark .control-hint {
+  color: #bdc3c7;
+}
+
+.markmap-dark .mindmap-controls {
+  background: rgba(52, 73, 94, 0.2);
+  border-top-color: #7f8c8d;
+}
