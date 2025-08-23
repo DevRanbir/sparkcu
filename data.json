@@ -1,0 +1,509 @@
+{
+  "name": "Spark Ideathon",
+  "children": [
+    {
+      "name": "About",
+      "children": [
+        {
+          "name": "**Title**: Igniting Ideas, Inspiring Innovation",
+          "sources": ["1"]
+        },
+        {
+          "name": "**Academic Session**: 2025-26",
+          "sources": ["1"]
+        },
+        {
+          "name": "**For**: 1st and 2nd Year Students",
+          "sources": ["1"]
+        },
+        {
+          "name": "**Course**: Bachelor of Engineering – CSE",
+          "sources": ["1"]
+        }
+      ]
+    },
+    {
+      "name": "**Objectives**",
+      "children": [
+        {
+          "name": "Foster creativity, problem-solving, and innovation",
+          "sources": ["1"]
+        }
+      ]
+    },
+    {
+      "name": "**Main Sections**",
+      "children": [
+        {
+          "name": "**Expert Guidance**",
+          "children": [
+            {
+              "name": "**What**: Mentorship sessions by industry experts & professors",
+              "sources": ["1"]
+            },
+            {
+              "name": "**What**: Insights on problem statements, tools, and technologies",
+              "sources": ["1"]
+            },
+            {
+              "name": "**Why**: To guide and inspire participants to start with clarity and confidence",
+              "sources": ["2"]
+            }
+          ]
+        },
+        {
+          "name": "**Coding Contest (Optional)**",
+          "children": [
+            {
+              "name": "**What**: 3 different coding challenges on a dedicated platform (Quiz Type)",
+              "sources": ["2"]
+            },
+            {
+              "name": "**About the Contest**: Completely optional (bonus marks only)",
+              "sources": ["3"]
+            },
+            {
+              "name": "Conducted in 3 rounds, each focusing on a specific domain",
+              "sources": ["3"]
+            },
+            {
+              "name": "**Format**: Quiz-based, MCQs",
+              "sources": ["3"]
+            },
+            {
+              "name": "AI allowed for brainstorming but speed matters (time limit enforced)",
+              "sources": ["3", "10"]
+            },
+            {
+              "name": "Students can participate in any round irrespective of previous rounds",
+              "sources": ["3"]
+            },
+            {
+              "name": "**Why**: To recognise coding talent and provide a fair chance to earn bonus marks without making it mandatory",
+              "sources": ["2"]
+            },
+            {
+              "name": "**Scoring**",
+              "children": [
+                {
+                  "name": "Participation in any of 3 rounds: **+0.5 mark**",
+                  "sources": ["2", "3", "10"]
+                },
+                {
+                  "name": "Best in Category (Web/App/General): **+1 mark**",
+                  "sources": ["2", "3", "10"]
+                },
+                {
+                  "name": "Overall Topper (won in at least 2 categories/domains): **+2 marks**",
+                  "sources": ["2", "3", "10"]
+                }
+              ]
+            },
+            {
+              "name": "**Rounds & Categories**",
+              "children": [
+                {
+                  "name": "**Round 1 – Web Development Quiz**",
+                  "children": [
+                    {
+                      "name": "Covers HTML, CSS, JavaScript basics, frameworks, and best practices",
+                      "sources": ["3"]
+                    },
+                    {
+                      "name": "Focus on fundamental and practical problem-solving",
+                      "sources": ["4"]
+                    }
+                  ]
+                },
+                {
+                  "name": "**Round 2 – General Programming Quiz**",
+                  "children": [
+                    {
+                      "name": "Core C, C++, Python concepts",
+                      "sources": ["4"]
+                    },
+                    {
+                      "name": "Data Structures, Algorithms, Debugging scenarios",
+                      "sources": ["4"]
+                    }
+                  ]
+                },
+                {
+                  "name": "**Round 3 – App Development Quiz**",
+                  "children": [
+                    {
+                      "name": "Android, iOS, cross-platform (Flutter, React Native) basics",
+                      "sources": ["4"]
+                    },
+                    {
+                      "name": "App architecture, UI/UX, APIs",
+                      "sources": ["4"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "**PPT Presentation (Main Evaluation)**",
+          "children": [
+            {
+              "name": "**What**: Each team presents their idea and solution through PPT (with demo if possible)",
+              "sources": ["4"]
+            },
+            {
+              "name": "**Why**: To evaluate clarity, innovation, and feasibility — ensuring ideas are not just creative but also practical",
+              "sources": ["5"]
+            },
+            {
+              "name": "**Scoring (10 Marks)**",
+              "children": [
+                {
+                  "name": "Problem Understanding & Relevance: **2 marks**",
+                  "sources": ["4", "8"]
+                },
+                {
+                  "name": "Creativity & Innovation: **3 marks**",
+                  "sources": ["5", "8"]
+                },
+                {
+                  "name": "Technical Feasibility / Implementation: **2 marks**",
+                  "sources": ["5", "8"]
+                },
+                {
+                  "name": "Presentation & Communication: **3 marks**",
+                  "sources": ["5", "8"]
+                }
+              ]
+            },
+            {
+              "name": "**PPT Guidelines**",
+              "children": [
+                {
+                  "name": "Maximum **12 slides**",
+                  "sources": ["6", "9"]
+                },
+                {
+                  "name": "**Why**: To provide a clear, uniform structure for fair evaluation",
+                  "sources": ["6"]
+                },
+                {
+                  "name": "**Specific Slides Required**",
+                  "children": [
+                    {
+                      "name": "Title Page (CU Logo + SPARK IDEATHON)",
+                      "sources": ["5"]
+                    },
+                    {
+                      "name": "Problem Statement",
+                      "sources": ["5"]
+                    },
+                    {
+                      "name": "Why This Problem Matters",
+                      "sources": ["5"]
+                    },
+                    {
+                      "name": "Proposed Solution",
+                      "sources": ["5"]
+                    },
+                    {
+                      "name": "Creativity & Innovation",
+                      "sources": ["5"]
+                    },
+                    {
+                      "name": "Target Users / Beneficiaries",
+                      "sources": ["5"]
+                    },
+                    {
+                      "name": "Tech Stack / Tools",
+                      "sources": ["5"]
+                    },
+                    {
+                      "name": "Implementation Plan / Workflow",
+                      "sources": ["5"]
+                    },
+                    {
+                      "name": "Prototype / Demo (if any)",
+                      "sources": ["5"]
+                    },
+                    {
+                      "name": "Results / Expected Outcomes",
+                      "sources": ["6"]
+                    },
+                    {
+                      "name": "Future Scope & Challenges",
+                      "sources": ["6"]
+                    },
+                    {
+                      "name": "Thank You + Contact Info",
+                      "sources": ["6"]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "**PPT Topics (Open Innovation)**",
+              "children": [
+                {
+                  "name": "**Theme**: Focus on innovative solutions in any technology domain",
+                  "sources": ["6"]
+                },
+                {
+                  "name": "Teams are free to choose their own problem statement",
+                  "sources": ["6"]
+                },
+                {
+                  "name": "**Suggested Domains (not limited to)**",
+                  "children": [
+                    {
+                      "name": "Artificial Intelligence (AI) & Machine Learning (ML)",
+                      "sources": ["6"]
+                    },
+                    {
+                      "name": "Web3 & Blockchain",
+                      "sources": ["6"]
+                    },
+                    {
+                      "name": "App Development (Mobile/Desktop)",
+                      "sources": ["6"]
+                    },
+                    {
+                      "name": "Cybersecurity & Privacy",
+                      "sources": ["7"]
+                    },
+                    {
+                      "name": "Internet of Things (IoT) / Smart Systems",
+                      "sources": ["7"]
+                    }
+                  ]
+                },
+                {
+                  "name": "**Example Idea Topics**",
+                  "children": [
+                    {
+                      "name": "AI-Powered Health Assistant",
+                      "sources": ["7"]
+                    },
+                    {
+                      "name": "Blockchain-based Certificate Verification System",
+                      "sources": ["7"]
+                    },
+                    {
+                      "name": "Mental Wellness App",
+                      "sources": ["7"]
+                    },
+                    {
+                      "name": "Smart Waste Management System",
+                      "sources": ["7"]
+                    },
+                    {
+                      "name": "Web3 Crowdfunding Platform",
+                      "sources": ["7"]
+                    },
+                    {
+                      "name": "More imagination leads to higher scores",
+                      "sources": ["8"]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "**Team Requirements**",
+      "children": [
+        {
+          "name": "**Team size**: Minimum 3, Maximum 4 members",
+          "sources": ["8"]
+        },
+        {
+          "name": "**Eligible students**: 1st or 2nd year BE CSE, Chandigarh University",
+          "sources": ["8", "9"]
+        },
+        {
+          "name": "Each team must nominate one **Team Leader**",
+          "sources": ["8", "9"]
+        },
+        {
+          "name": "**Why**: To encourage collaboration and fair participation",
+          "sources": ["8"]
+        },
+        {
+          "name": "**Why**: To ensure all teams are balanced in size and academic background",
+          "sources": ["9"]
+        },
+        {
+          "name": "**Why**: A Team Leader provides clear communication and responsibility",
+          "sources": ["9"]
+        }
+      ]
+    },
+    {
+      "name": "**Judging & Scoring**",
+      "children": [
+        {
+          "name": "**PPT Presentation**: Main evaluation (2+3+2+3 = 10 marks)",
+          "sources": ["8"]
+        },
+        {
+          "name": "**Coding Contest**: Optional bonus (up to +2, capped at 10 total)",
+          "sources": ["8"]
+        },
+        {
+          "name": "**Why**: To maintain fairness while rewarding both innovative thinking and coding excellence",
+          "sources": ["8"]
+        }
+      ]
+    },
+    {
+      "name": "**Rewards & Recognition**",
+      "children": [
+        {
+          "name": "**Full Day Duty Leave (DL)** for all participants",
+          "sources": ["9"]
+        },
+        {
+          "name": "**E-Certificates** for every participant",
+          "sources": ["9"]
+        },
+        {
+          "name": "Coding Contest Category specific Certificates from respective clubs (to be confirmed)",
+          "sources": ["9"]
+        },
+        {
+          "name": "**Trophies & Certificates for Top 3 Teams**",
+          "sources": ["9"]
+        }
+      ]
+    },
+    {
+      "name": "**Rules**",
+      "children": [
+        {
+          "name": "**General Rules**",
+          "children": [
+            {
+              "name": "Teams must strictly follow PPT Guidelines (**12 slides max**)",
+              "sources": ["9"]
+            },
+            {
+              "name": "No similar/repeated content between teams (**plagiarism leads to disqualification**)",
+              "sources": ["9"]
+            },
+            {
+              "name": "All team members must be CU BE CSE students (1st or 2nd year)",
+              "sources": ["9"]
+            },
+            {
+              "name": "One Team Leader must be appointed for communication",
+              "sources": ["10"]
+            }
+          ]
+        },
+        {
+          "name": "**AI Usage Rules**",
+          "children": [
+            {
+              "name": "AI is allowed for idea generation & coding contest support",
+              "sources": ["10"]
+            },
+            {
+              "name": "**AI is NOT allowed for direct PPT creation** (e.g., Gamma, Canva premade templates, or similar well-known design platforms)",
+              "sources": ["10"]
+            },
+            {
+              "name": "Using prohibited AI tools for PPT creation = **direct disqualification**",
+              "sources": ["10"]
+            },
+            {
+              "name": "Teams must present in their own words; AI-generated text must be customized",
+              "sources": ["10"]
+            }
+          ]
+        },
+        {
+          "name": "**Coding Contest Rules**",
+          "children": [
+            {
+              "name": "Participation earns +0.5 mark, Best in Category = +1, Best in at least 2 = +2",
+              "sources": ["10"]
+            },
+            {
+              "name": "Contest will be **time-limited** – fastest and most accurate teams secure top positions",
+              "sources": ["10"]
+            },
+            {
+              "name": "Use of AI is allowed in contest, but the faster team will be the winner",
+              "sources": ["10"]
+            }
+          ]
+        },
+        {
+          "name": "**PPT Presentation Rules**",
+          "children": [
+            {
+              "name": "Strict adherence to **time limit (5–6 minutes)**",
+              "sources": ["11"]
+            },
+            {
+              "name": "Every team must give the floor to the Team Leader at least once",
+              "sources": ["11"]
+            },
+            {
+              "name": "Teams must be ready for **Q&A by judges**",
+              "sources": ["11"]
+            }
+          ]
+        },
+        {
+          "name": "**Behavioral Rules**",
+          "children": [
+            {
+              "name": "Respect mentors, organizers, and other teams",
+              "sources": ["11"]
+            },
+            {
+              "name": "Any form of misconduct or unfair means will result in **disqualification**",
+              "sources": ["11"]
+            },
+            {
+              "name": "**Judges’ decision will be final and binding**",
+              "sources": ["11"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "**Organised By**",
+      "children": [
+        {
+          "name": "Chandigarh University – Dept. of CSE",
+          "sources": ["11"]
+        }
+      ]
+    },
+    {
+      "name": "**Contact Information**",
+      "children": [
+        {
+          "name": "Email: spark.ideathon@cumail.com",
+          "sources": ["11"]
+        },
+        {
+          "name": "Phone: +91-XXXXXXXXXX",
+          "sources": ["11"]
+        },
+        {
+          "name": "Website/Portal: CUSPARK.live",
+          "sources": ["11"]
+        }
+      ]
+    }
+  ]
+}
