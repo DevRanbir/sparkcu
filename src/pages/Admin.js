@@ -10,14 +10,22 @@ function Admin() {
   const [loading, setLoading] = useState(false);
   const [setupMode, setSetupMode] = useState(false);
   const [setupMessage, setSetupMessage] = useState('');
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const navigate = useNavigate();
 
-  // Redirect if already logged in as admin
+  // Check admin login status on component mount only
   useEffect(() => {
-    const adminSession = isAdminLoggedIn();
-    if (adminSession) {
-      navigate('/management');
-    }
+    const checkAdminAuth = () => {
+      const adminSession = isAdminLoggedIn();
+      if (adminSession) {
+        navigate('/management', { replace: true });
+      } else {
+        setCheckingAuth(false);
+      }
+    };
+
+    // Only check once on mount
+    checkAdminAuth();
   }, [navigate]);
 
   const handleSetupAdmin = async () => {
@@ -56,16 +64,35 @@ function Admin() {
       const result = await loginAdmin(adminId.trim(), password);
       
       if (result.success) {
-        navigate('/management');
+        // Keep loading state active during navigation
+        // Add a small delay to ensure login state is properly set
+        setTimeout(() => {
+          navigate('/management', { replace: true });
+          // Don't set loading to false here, let the navigation handle it
+        }, 200);
       } else {
         setError(result.message);
+        setLoading(false);
       }
     } catch (error) {
       setError('An unexpected error occurred. Please try again.');
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
+
+  // Show loading while checking authentication
+  if (checkingAuth) {
+    return (
+      <div className="admin-container">
+        <div className="admin-card">
+          <div className="admin-header">
+            <h2>Checking Authentication...</h2>
+            <div className="loading-spinner"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-container">
@@ -113,30 +140,7 @@ function Admin() {
             {loading ? 'Authenticating...' : 'Login'}
           </button>
           
-          <div className="setup-section">
-            <button 
-              type="button"
-              onClick={() => setSetupMode(!setupMode)}
-              className="setup-toggle-btn"
-              disabled={loading}
-            >
-              {setupMode ? 'Hide Setup' : 'First Time Setup'}
-            </button>
-            
-            {setupMode && (
-              <div className="setup-content">
-                <p>If this is your first time, click below to create the default admin account:</p>
-                <button 
-                  type="button"
-                  onClick={handleSetupAdmin}
-                  className="setup-btn"
-                  disabled={loading}
-                >
-                  {loading ? 'Creating Admin...' : 'Create Default Admin'}
-                </button>
-              </div>
-            )}
-          </div>
+
         </form>
         
         <div className="admin-footer">

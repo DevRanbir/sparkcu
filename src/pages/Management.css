@@ -98,7 +98,7 @@
 
 .tab-content {
   border-radius: 10px;
-  padding: 30px;
+  padding: 10px;
   min-height: 500px;
   overflow: visible;
   position: relative;
@@ -818,8 +818,8 @@
   background: white;
   border-radius: 12px;
   width: 100%;
-  max-width: 900px;
-  max-height: 90vh;
+  max-width: 1000px;
+  max-height: 95vh;
   overflow-y: auto;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
@@ -828,10 +828,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 30px;
+  padding: 10px 20px;
   border-bottom: 2px solid #e1e5e9;
   background: #f8f9fa;
   border-radius: 12px 12px 0 0;
+  margin-bottom: -10px;
 }
 
 .modal-header h2 {
@@ -864,6 +865,9 @@
 
 .modal-content {
   padding: 30px;
+  box-shadow: none;
+  max-width: 100%;
+  width: 100%;
 }
 
 .team-info-section,
@@ -1891,9 +1895,9 @@
   background: white;
   border-radius: 12px;
   width: 100%;
-  max-width: 700px;
+  max-width: 1000px;
   max-height: 90vh;
-  overflow-y: auto;
+  overflow-y: hidden;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 

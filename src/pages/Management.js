@@ -201,7 +201,8 @@ function Management() {
       team.teamName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       team.leaderName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       team.leaderEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      team.academicYear.toLowerCase().includes(searchTerm.toLowerCase());
+      team.academicYear.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (team.topicName && team.topicName.toLowerCase().includes(searchTerm.toLowerCase()));
 
     // Apply filter type
     let matchesFilter = true;
@@ -277,7 +278,8 @@ function Management() {
     const matchesSearch = submissionSearchTerm === '' || 
       team.teamName.toLowerCase().includes(submissionSearchTerm.toLowerCase()) ||
       team.leaderName.toLowerCase().includes(submissionSearchTerm.toLowerCase()) ||
-      team.academicYear.toLowerCase().includes(submissionSearchTerm.toLowerCase());
+      team.academicYear.toLowerCase().includes(submissionSearchTerm.toLowerCase()) ||
+      (team.topicName && team.topicName.toLowerCase().includes(submissionSearchTerm.toLowerCase()));
 
     // Apply filter type
     let matchesFilter = true;
@@ -503,6 +505,7 @@ function Management() {
 
         return {
           'Team Name': team.teamName,
+          'Topic Name': team.topicName || 'Not specified',
           'Leader': team.leaderName,
           'Email': team.leaderEmail,
           'Academic Year': team.academicYear,
@@ -526,6 +529,7 @@ function Management() {
       const submissionsExportData = submissionsData.map(team => {
         return {
           'Team Name': team.teamName,
+          'Topic Name': team.topicName || 'Not specified',
           'Leader Name': team.leaderName,
           'Leader Email': team.leaderEmail,
           'Academic Year': team.academicYear,
@@ -689,7 +693,7 @@ function Management() {
                 <div className="search-input-wrapper">
                   <input
                     type="text"
-                    placeholder="Search teams, leaders, or emails..."
+                    placeholder="Search teams, topics, leaders, or emails..."
                     value={searchTerm}
                     onChange={handleSearchChange}
                     className="search-input"
@@ -792,6 +796,10 @@ function Management() {
                           <span className="value">{team.leaderEmail}</span>
                         </div>
                         <div className="team-card-row">
+                          <span className="label">Topic:</span>
+                          <span className="value">{team.topicName || 'Not specified'}</span>
+                        </div>
+                        <div className="team-card-row">
                           <span className="label">Academic Year:</span>
                           <span className="value">{team.academicYear}</span>
                         </div>
@@ -831,6 +839,7 @@ function Management() {
                     <thead>
                       <tr>
                         <th>Team Name</th>
+                        <th>Topic</th>
                         <th>Leader</th>
                         <th>Email</th>
                         <th>Academic Year</th>
@@ -844,6 +853,7 @@ function Management() {
                       {filteredTeams.map((team) => (
                         <tr key={team.id}>
                           <td className="team-name">{team.teamName}</td>
+                          <td>{team.topicName || 'Not specified'}</td>
                           <td>{team.leaderName}</td>
                           <td>{team.leaderEmail}</td>
                           <td>{team.academicYear}</td>
@@ -975,7 +985,7 @@ function Management() {
                 <div className="search-input-wrapper">
                   <input
                     type="text"
-                    placeholder="Search teams, academic year..."
+                    placeholder="Search teams, topics, academic year..."
                     value={submissionSearchTerm}
                     onChange={handleSubmissionSearchChange}
                     className="search-input"
@@ -1025,6 +1035,10 @@ function Management() {
                       </div>
                       <div className="submission-card-info">
                         <div className="submission-card-row">
+                          <span className="label">Topic:</span>
+                          <span className="value">{team.topicName || 'Not specified'}</span>
+                        </div>
+                        <div className="submission-card-row">
                           <span className="label">Academic Year:</span>
                           <span className="value">{team.academicYear}</span>
                         </div>
@@ -1062,6 +1076,7 @@ function Management() {
                     <thead>
                       <tr>
                         <th>Team Name</th>
+                        <th>Topic</th>
                         <th>Academic Year</th>
                         <th>Submission Date</th>
                         <th>Presentation Link</th>
@@ -1072,6 +1087,7 @@ function Management() {
                       {filteredSubmissions.map((team) => (
                         <tr key={team.id}>
                           <td className="team-name">{team.teamName}</td>
+                          <td>{team.topicName || 'Not specified'}</td>
                           <td>{team.academicYear}</td>
                           <td>
                             {formatSubmissionDate(team.submissionLinks?.lastUpdated)}
@@ -1429,6 +1445,10 @@ function Management() {
                     <span>{selectedSubmission.teamName}</span>
                   </div>
                   <div className="info-item">
+                    <label>Topic Name:</label>
+                    <span>{selectedSubmission.topicName || 'Not specified'}</span>
+                  </div>
+                  <div className="info-item">
                     <label>Leader:</label>
                     <span>{selectedSubmission.leaderName}</span>
                   </div>
@@ -1534,6 +1554,10 @@ function Management() {
                   <div className="info-item">
                     <label>Team Name:</label>
                     <span>{selectedTeam.teamName}</span>
+                  </div>
+                  <div className="info-item">
+                    <label>Topic Name:</label>
+                    <span>{selectedTeam.topicName || 'Not specified'}</span>
                   </div>
                   <div className="info-item">
                     <label>Academic Year:</label>

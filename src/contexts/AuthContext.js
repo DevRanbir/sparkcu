@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChange, getUserData, isAdminLoggedIn, getAdminSession, checkLoginPersistence, setupSessionManagement } from '../services/firebase';
+import { onAuthStateChange, getUserTeamData, isAdminLoggedIn, getAdminSession, checkLoginPersistence, setupSessionManagement } from '../services/firebase';
 
 const AuthContext = createContext();
 
@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
 
     // Check admin session on mount and periodically
     checkAdminSession();
-    const adminInterval = setInterval(checkAdminSession, 5000); // Check every 5 seconds
+    const adminInterval = setInterval(checkAdminSession, 1000); // Check every 1 second for more responsive updates
 
     // Setup session management for handling browser close/refresh
     const cleanupSessionManagement = setupSessionManagement();
@@ -39,10 +39,10 @@ export const AuthProvider = ({ children }) => {
         if (user && user.emailVerified) {
           // Only set user data if email is verified
           setCurrentUser(user);
-          // Fetch additional user data from Firestore
-          const result = await getUserData(user.uid);
+          // Fetch additional user data from Firestore with current verification status
+          const result = await getUserTeamData();
           if (result.success) {
-            setUserData(result.data);
+            setUserData(result.teamData);
           }
         } else {
           // If user is not verified or no user, clear state

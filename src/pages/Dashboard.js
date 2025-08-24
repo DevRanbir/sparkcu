@@ -5,7 +5,8 @@ import {
   getCountdownData, 
   getAnnouncements, 
   updateTeamSubmission, 
-  getTeamSubmission 
+  getTeamSubmission,
+  updateTeamTopicName
 } from '../services/firebase';
 
 const Dashboard = () => {
@@ -26,6 +27,9 @@ const Dashboard = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [isSubmissionLoading, setIsSubmissionLoading] = useState(false);
   const [submissionSaved, setSubmissionSaved] = useState(false);
+  const [topicName, setTopicName] = useState('');
+  const [isTopicLoading, setIsTopicLoading] = useState(false);
+  const [topicSaved, setTopicSaved] = useState(false);
 
   // Event date - using useMemo to prevent recreation on every render
   const eventDate = useMemo(() => {
@@ -81,7 +85,13 @@ const Dashboard = () => {
     fetchCountdownConfig();
     fetchAnnouncementsData();
     fetchSubmissionData();
-  }, [currentUser]);
+    
+    // Initialize topic name from userData
+    if (userData?.topicName) {
+      setTopicName(userData.topicName);
+      setTopicSaved(true);
+    }
+  }, [currentUser, userData]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -172,6 +182,38 @@ const Dashboard = () => {
     }
   };
 
+  const handleSaveTopicName = async () => {
+    if (!currentUser?.uid) {
+      alert('User not authenticated');
+      return;
+    }
+
+    if (!topicName.trim()) {
+      alert('Topic name cannot be empty');
+      return;
+    }
+
+    setIsTopicLoading(true);
+
+    try {
+      const result = await updateTeamTopicName(currentUser.uid, topicName.trim());
+      
+      if (result.success) {
+        setTopicSaved(true);
+        alert('Topic name updated successfully!');
+        // Update the userData context would happen automatically on next auth state change
+        // or we could trigger a page refresh to update the context
+      } else {
+        alert(result.message || 'Error updating topic name');
+      }
+    } catch (error) {
+      console.error('Error updating topic name:', error);
+      alert('Error updating topic name. Please try again.');
+    } finally {
+      setIsTopicLoading(false);
+    }
+  };
+
   const openLink = (url) => {
     if (url && url.trim()) {
       window.open(url, '_blank');
@@ -252,6 +294,10 @@ const Dashboard = () => {
                     <span className="detail-value">{leaderEmail}</span>
                   </div>
                   <div className="detail-item">
+                    <span className="detail-label">Topic Name:</span>
+                    <span className="detail-value">{topicName || userInfo.topicName || 'Not specified'}</span>
+                  </div>
+                  <div className="detail-item">
                     <span className="detail-label">Academic Year:</span>
                     <span className="detail-value">{userInfo.academicYear}</span>
                   </div>
@@ -318,6 +364,48 @@ const Dashboard = () => {
                 )}
               </div>
               <div className="submission-form">
+                <div className="form-group topic-name-section">
+                  <label htmlFor="topicName">
+                    Topic Name
+                  </label>
+                  <div className="topic-input-group">
+                    <input
+                      type="text"
+                      id="topicName"
+                      value={topicName}
+                      onChange={(e) => {
+                        setTopicName(e.target.value);
+                        if (topicSaved && e.target.value !== topicName) {
+                          setTopicSaved(false);
+                        }
+                      }}
+                      placeholder="Enter your project topic name"
+                      maxLength="100"
+                    />
+                    <button 
+                      type="button"
+                      className={`topic-save-button ${isTopicLoading ? 'loading' : ''} ${topicSaved ? 'saved' : ''}`}
+                      onClick={handleSaveTopicName}
+                      disabled={isTopicLoading || !topicName.trim()}
+                    >
+                      {isTopicLoading ? (
+                        'Saving...'
+                      ) : topicSaved ? (
+                        '✓ Saved'
+                      ) : (
+                        'Save Topic'
+                      )}
+                    </button>
+                  </div>
+                  <small className="form-hint">
+                    You can update your project topic name anytime untill deadline
+                  </small>
+                </div>
+
+                <div className="form-section-divider">
+                  <h3>Project Submission Links</h3>
+                </div>
+
                 <div className="form-group">
                   <label htmlFor="presentationLink">
                     <span className="required">*</span> Google Drive Presentation Link
@@ -422,7 +510,7 @@ const Dashboard = () => {
                     </>
                   )}
                 </button>
-                <p className="card-subtitle">Click the above button to submit your project links and resources, <br /> if once submitted until deadline you can edit freely.</p>
+                <p className="card-subtitle">Click the above button to submit your project links and resources. <br />You can also update your topic name separately above. <br /> Once submitted, you can edit freely until the deadline.</p>
               </div>
             </div>
           </div>

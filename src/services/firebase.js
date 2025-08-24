@@ -12,7 +12,8 @@ import {
   onAuthStateChanged,
   setPersistence,
   browserLocalPersistence,
-  browserSessionPersistence
+  browserSessionPersistence,
+  getUser
 } from "firebase/auth";
 import { 
   getFirestore, 
@@ -100,9 +101,9 @@ export const registerUser = async (email, password, userData) => {
       leaderEmail: email,
       leaderFirebaseUid: user.uid,
       academicYear: userData.academicYear,
+      topicName: userData.topicName,
       members: allMembers,
       createdAt: serverTimestamp(),
-      emailVerified: false,
       registrationComplete: true
     });
 
@@ -152,7 +153,7 @@ export const loginUser = async (email, password, rememberMe = false) => {
       sessionStorage.setItem('loginSession', Date.now().toString());
     }
 
-    // Find the team where this user is the leader
+    // Find the team where this user is the leader and update last login activity
     const teamsRef = collection(db, 'teams');
     const q = query(teamsRef, where('leaderFirebaseUid', '==', user.uid));
     const querySnapshot = await getDocs(q);
@@ -160,7 +161,13 @@ export const loginUser = async (email, password, rememberMe = false) => {
     let userData = null;
     if (!querySnapshot.empty) {
       // Get the first (should be only) matching team
-      userData = querySnapshot.docs[0].data();
+      const teamDoc = querySnapshot.docs[0];
+      userData = teamDoc.data();
+      
+      // Update last login activity to track verification status
+      await updateDoc(doc(db, 'teams', teamDoc.id), {
+        lastLoginActivity: serverTimestamp()
+      });
     }
 
     return {
@@ -491,6 +498,78 @@ export const getAdminSession = () => {
   }
 };
 
+// Get current user's team data with their actual email verification status
+export const getUserTeamData = async () => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return {
+        success: false,
+        message: 'No user logged in'
+      };
+    }
+
+    // Find the team where this user is the leader
+    const teamsRef = collection(db, 'teams');
+    const q = query(teamsRef, where('leaderFirebaseUid', '==', currentUser.uid));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      return {
+        success: false,
+        message: 'No team found for current user'
+      };
+    }
+
+    const teamData = querySnapshot.docs[0].data();
+    
+    // Add the actual email verification status from Firebase Auth
+    return {
+      success: true,
+      teamData: {
+        ...teamData,
+        emailVerified: currentUser.emailVerified
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching user team data:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error fetching team data'
+    };
+  }
+};
+
+// Refresh current user's email verification status
+export const refreshUserVerificationStatus = async () => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      return {
+        success: false,
+        message: 'No user logged in'
+      };
+    }
+
+    // Reload the user to get the latest verification status
+    await currentUser.reload();
+    
+    return {
+      success: true,
+      emailVerified: currentUser.emailVerified,
+      message: currentUser.emailVerified ? 'Email is verified!' : 'Email verification still pending'
+    };
+  } catch (error) {
+    console.error('Error refreshing verification status:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error checking verification status'
+    };
+  }
+};
+
 // Fetch all teams for admin
 export const getAllTeams = async () => {
   try {
@@ -498,12 +577,45 @@ export const getAllTeams = async () => {
     const querySnapshot = await getDocs(teamsRef);
     
     const teams = [];
-    querySnapshot.forEach((doc) => {
+    const currentUser = auth.currentUser;
+    
+    for (const docSnap of querySnapshot.docs) {
+      const teamData = docSnap.data();
+      let emailVerified = false;
+      
+      // If the current user is the leader of this team, get their actual verification status
+      if (currentUser && teamData.leaderFirebaseUid === currentUser.uid) {
+        emailVerified = currentUser.emailVerified;
+      } else {
+        // For other teams, we need to infer verification status from their activity
+        // Since users can only log in if they're verified (due to our login checks)
+        
+        // Check if team has any recent successful activity that indicates verification
+        const hasSubmissionActivity = teamData.submissionLinks && teamData.submissionLinks.lastUpdated;
+        const hasRecentLogin = teamData.lastLoginActivity && 
+          (new Date() - (teamData.lastLoginActivity.toDate ? teamData.lastLoginActivity.toDate() : new Date(teamData.lastLoginActivity))) < (30 * 24 * 60 * 60 * 1000); // 30 days
+        
+        // If they've submitted something or logged in recently, they must be verified
+        // This is a reasonable assumption since our login system requires verification
+        emailVerified = hasSubmissionActivity || hasRecentLogin || false;
+        
+        // For very recent registrations (within last hour), assume pending unless proven verified
+        if (teamData.createdAt) {
+          const registrationTime = teamData.createdAt.toDate ? teamData.createdAt.toDate() : new Date(teamData.createdAt);
+          const hoursSinceRegistration = (new Date() - registrationTime) / (1000 * 60 * 60);
+          
+          if (hoursSinceRegistration < 1 && !hasSubmissionActivity && !hasRecentLogin) {
+            emailVerified = false; // Very recent registration, likely not verified yet
+          }
+        }
+      }
+      
       teams.push({
-        id: doc.id,
-        ...doc.data()
+        id: docSnap.id,
+        ...teamData,
+        emailVerified: emailVerified
       });
-    });
+    }
     
     return {
       success: true,
@@ -899,6 +1011,43 @@ export const getTeamSubmission = async (userId) => {
       success: false,
       error: error.code,
       message: 'Error fetching submission links'
+    };
+  }
+};
+
+// Update team topic name
+export const updateTeamTopicName = async (userId, topicName) => {
+  try {
+    // Find the team where this user is the leader
+    const teamsRef = collection(db, 'teams');
+    const q = query(teamsRef, where('leaderFirebaseUid', '==', userId));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      return {
+        success: false,
+        message: 'Team not found for this user'
+      };
+    }
+
+    const teamDoc = querySnapshot.docs[0];
+    const teamRef = doc(db, 'teams', teamDoc.id);
+    
+    await updateDoc(teamRef, {
+      topicName: topicName,
+      topicUpdatedAt: serverTimestamp()
+    });
+
+    return {
+      success: true,
+      message: 'Topic name updated successfully'
+    };
+  } catch (error) {
+    console.error('Error updating topic name:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error updating topic name'
     };
   }
 };
