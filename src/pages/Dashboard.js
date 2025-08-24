@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './Dashboard.css';
+import { useAuth } from '../contexts/AuthContext';
 
-const Dashboard = ({ userData }) => {
-  const [currentTime, setCurrentTime] = useState(new Date());
+const Dashboard = () => {
+  const { currentUser, userData, loading } = useAuth();
   const [timeRemaining, setTimeRemaining] = useState({});
   const [presentationLink, setPresentationLink] = useState('');
   const [additionalLinks, setAdditionalLinks] = useState([
@@ -11,30 +12,12 @@ const Dashboard = ({ userData }) => {
     { type: 'other', url: '', label: 'Other Link' }
   ]);
 
-  // Use userData from props or fallback to default
-  const userInfo = userData || {
-    name: "John Doe",
-    email: "john.doe@university.edu",
-    uid: "2021CS001",
-    mobile: "+91 9876543210",
-    university: "Example University",
-    teamName: "Code Innovators",
-    teamLeader: "John Doe",
-    teamMembers: [
-      { name: "John Doe", uid: "2021CS001", mobile: "+91 9876543210", role: "Team Leader" },
-      { name: "Jane Smith", uid: "2021CS002", mobile: "+91 9876543211", role: "Member" },
-      { name: "Mike Johnson", uid: "2021CS003", mobile: "+91 9876543212", role: "Member" },
-      { name: "Sarah Wilson", uid: "2021CS004", mobile: "+91 9876543213", role: "Member" }
-    ]
-  };
-
-  // Event date
-  const eventDate = new Date('2024-12-15T09:00:00');
+  // Event date - using useMemo to prevent recreation on every render
+  const eventDate = useMemo(() => new Date('2024-12-15T09:00:00'), []);
 
   useEffect(() => {
     const timer = setInterval(() => {
       const now = new Date();
-      setCurrentTime(now);
       
       const difference = eventDate.getTime() - now.getTime();
       
@@ -52,6 +35,29 @@ const Dashboard = ({ userData }) => {
 
     return () => clearInterval(timer);
   }, [eventDate]);
+
+  // Show loading state while auth is being determined
+  if (loading) {
+    return (
+      <div className="dashboard-page">
+        <div className="dashboard-loading">
+          <div className="loading-spinner"></div>
+          <p>Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Use userData from Firebase auth context or fallback to default
+  const userInfo = userData || {
+    leaderName: currentUser?.displayName || "Team Leader",
+    email: currentUser?.email || "team@example.com",
+    teamName: "Your Team",
+    academicYear: "2nd",
+    members: [
+      { name: currentUser?.displayName || "Team Leader", uid: "Not provided", mobile: "Not provided" }
+    ]
+  };
 
   const handleLinkChange = (index, value) => {
     const updatedLinks = [...additionalLinks];
@@ -93,7 +99,7 @@ const Dashboard = ({ userData }) => {
   return (
     <div className="dashboard-page">
       <div className="dashboard-header">
-        <h1>Welcome back, {userInfo.name}!</h1>
+        <h1>Welcome back, {userInfo.leaderName}!</h1>
         <p>Your SparkCU Ideathon Dashboard</p>
       </div>
 
@@ -127,28 +133,28 @@ const Dashboard = ({ userData }) => {
           <div className="team-overview">
             <div className="team-header">
               <h3>{userInfo.teamName}</h3>
-              <span className="team-size-badge">{userInfo.teamMembers.length} Members</span>
+              <span className="team-size-badge">{userInfo.members?.length || 0} Members</span>
             </div>
             
             <div className="team-members-grid">
-              {userInfo.teamMembers.map((member, index) => (
-                <div key={index} className={`member-card ${member.role === 'Team Leader' ? 'leader' : ''}`}>
+              {(userInfo.members || []).map((member, index) => (
+                <div key={index} className={`member-card ${index === 0 ? 'leader' : ''}`}>
                   <div className="member-info">
                     <div className="member-header">
                       <h4 className="member-name">{member.name}</h4>
-                      <span className={`member-status ${member.role === 'Team Leader' ? 'leader' : 'member'}`}>
-                        {member.role === 'Team Leader' ? '👑 Team Leader' : '👤 Member'}
+                      <span className={`member-status ${index === 0 ? 'leader' : 'member'}`}>
+                        {index === 0 ? '👑 Team Leader' : '👤 Member'}
                       </span>
                     </div>
                     
                     <div className="member-details">
                       <div className="detail-item">
                         <span className="detail-label">UID:</span>
-                        <span className="detail-value">{member.uid}</span>
+                        <span className="detail-value">{member.uid || 'N/A'}</span>
                       </div>
                       <div className="detail-item">
                         <span className="detail-label">Contact:</span>
-                        <span className="detail-value">{member.mobile}</span>
+                        <span className="detail-value">{member.mobile || 'N/A'}</span>
                       </div>
                     </div>
                   </div>

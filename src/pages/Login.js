@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Login.css';
+import { loginUser } from '../services/firebase';
 
 const Login = ({ onLogin }) => {
   const [formData, setFormData] = useState({
@@ -39,45 +40,51 @@ const Login = ({ onLogin }) => {
 
     // Validate form
     if (!formData.emailOrTeam || !formData.password) {
-      showToast('Please enter both email/team name and password');
+      showToast('Please enter both email and password');
       setIsLoading(false);
       return;
     }
 
-    // Check if input is email or team name (simple validation)
+    // Check if input is email (Firebase Auth requires email)
     const isEmail = formData.emailOrTeam.includes('@');
-    if (isEmail) {
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailPattern.test(formData.emailOrTeam)) {
-        showToast('Please enter a valid email address');
-        setIsLoading(false);
-        return;
-      }
+    if (!isEmail) {
+      showToast('Please enter your email address to login');
+      setIsLoading(false);
+      return;
     }
 
-    // Simulate login API call
-    setTimeout(() => {
-      // Mock successful login
-      const userData = {
-        name: "John Doe",
-        email: isEmail ? formData.emailOrTeam : "team@sparkcu.edu",
-        university: "Example University",
-        teamName: isEmail ? "Code Innovators" : formData.emailOrTeam,
-        teamMembers: ["John Doe", "Jane Smith", "Mike Johnson", "Sarah Wilson"]
-      };
-      
-      // Save to localStorage for persistence
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('userData', JSON.stringify(userData));
-      
-      showToast('Login successful! Welcome to SparkCU.', 'success');
-      
-      setTimeout(() => {
-        onLogin(userData);
-      }, 1000);
-      
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(formData.emailOrTeam)) {
+      showToast('Please enter a valid email address');
       setIsLoading(false);
-    }, 1000);
+      return;
+    }
+
+    try {
+      // Login with Firebase
+      const result = await loginUser(formData.emailOrTeam, formData.password);
+
+      if (result.success) {
+        // Save to localStorage for persistence if remember me is checked
+        if (formData.rememberMe) {
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('userData', JSON.stringify(result.userData));
+        }
+        
+        showToast(result.message, 'success');
+        
+        setTimeout(() => {
+          onLogin(result.userData);
+        }, 1000);
+      } else {
+        showToast(result.message, 'error');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      showToast('An unexpected error occurred. Please try again.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

@@ -10,41 +10,68 @@ import Prizes from './pages/Prizes';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Admin from './pages/Admin';
+import Management from './pages/Management';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
+import ErrorBoundary from './components/ErrorBoundary';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { logoutUser, logoutAdmin } from './services/firebase';
 
 // Component to handle the main app content with routing
 function AppContent() {
+  const { currentUser, adminSession } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userData, setUserData] = useState(null);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Check for existing login on app load
+  // Update login state based on Firebase auth state
   useEffect(() => {
-    const savedLoginState = localStorage.getItem('isLoggedIn');
-    const savedUserData = localStorage.getItem('userData');
-    
-    if (savedLoginState === 'true' && savedUserData) {
-      setIsLoggedIn(true);
-      setUserData(JSON.parse(savedUserData));
+    setIsLoggedIn(!!currentUser);
+  }, [currentUser]);
+
+  // Update admin login state
+  useEffect(() => {
+    setIsAdminLoggedIn(!!adminSession);
+  }, [adminSession]);
+
+  // Check for existing login on app load (for backward compatibility)
+  useEffect(() => {
+    if (!currentUser) {
+      const savedLoginState = localStorage.getItem('isLoggedIn');
+      const savedUserData = localStorage.getItem('userData');
+      
+      if (savedLoginState === 'true' && savedUserData) {
+        // Clear old localStorage data since we're using Firebase now
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('userData');
+      }
     }
-  }, []);
+  }, [currentUser]);
 
   const handleLogin = (user) => {
-    setIsLoggedIn(true);
-    setUserData(user);
-    localStorage.setItem('isLoggedIn', 'true');
-    localStorage.setItem('userData', JSON.stringify(user));
+    // Firebase handles the auth state, just navigate to dashboard
     navigate('/dashboard');
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserData(null);
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userData');
-    navigate('/home');
+  const handleLogout = async () => {
+    try {
+      if (isAdminLoggedIn) {
+        // Admin logout
+        logoutAdmin();
+        // Reload the page to ensure clean state
+        window.location.href = '/home';
+      } else {
+        // Regular user logout
+        await logoutUser();
+        navigate('/home');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback logout
+      navigate('/home');
+    }
   };
 
   const handleNavigation = (page) => {
@@ -57,6 +84,7 @@ function AppContent() {
         currentPath={location.pathname}
         onNavigate={handleNavigation}
         isLoggedIn={isLoggedIn}
+        isAdminLoggedIn={isAdminLoggedIn}
         onLogout={handleLogout}
       />
       <div className="main-content">
@@ -69,10 +97,15 @@ function AppContent() {
           <Route path="/prizes" element={<Prizes />} />
           <Route 
             path="/dashboard" 
-            element={isLoggedIn ? <Dashboard userData={userData} /> : <Navigate to="/login" />} 
+            element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" />} 
+          />
+          <Route 
+            path="/management" 
+            element={isAdminLoggedIn ? <Management /> : <Navigate to="/admin" />} 
           />
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="/" element={<Navigate to="/home" />} />
           <Route path="*" element={<Navigate to="/home" />} />
         </Routes>
@@ -84,9 +117,13 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

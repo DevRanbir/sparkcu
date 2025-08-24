@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Sidebar.css';
 
-function Sidebar({ currentPath, onNavigate, isLoggedIn, onLogout }) {
+function Sidebar({ currentPath, onNavigate, isLoggedIn, isAdminLoggedIn, onLogout }) {
   const [hoveredItem, setHoveredItem] = useState(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showMobileDropdown, setShowMobileDropdown] = useState(false);
@@ -91,7 +91,19 @@ function Sidebar({ currentPath, onNavigate, isLoggedIn, onLogout }) {
   ];
 
   // Authentication-dependent items
-  const authItems = isLoggedIn ? 
+  const authItems = isAdminLoggedIn ? 
+    [{
+      id: 'management', 
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 15l8-8-8-8-8 8z"/>
+          <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M15.5 12l3.5 3.5-3.5 3.5"/>
+          <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M8.5 12l-3.5 3.5 3.5 3.5"/>
+        </svg>
+      ), 
+      title: 'Management' 
+    }] :
+    isLoggedIn ? 
     [{
       id: 'dashboard', 
       icon: (
@@ -126,8 +138,8 @@ function Sidebar({ currentPath, onNavigate, isLoggedIn, onLogout }) {
 
   const sidebarItems = [...baseSidebarItems, ...authItems];
 
-  // Add logout item if logged in
-  if (isLoggedIn) {
+  // Add logout item if logged in (either regular user or admin)
+  if (isLoggedIn || isAdminLoggedIn) {
     sidebarItems.push({
       id: 'logout',
       icon: (
@@ -167,19 +179,8 @@ function Sidebar({ currentPath, onNavigate, isLoggedIn, onLogout }) {
 
   const currentPage = getCurrentPage();
 
-  // Split items for mobile view
-  const allItems = [...baseSidebarItems, ...authItems];
-  if (isLoggedIn) {
-    allItems.push({
-      id: 'logout',
-      icon: (
-        <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-          <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12h4M4 18v-1a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Zm8-10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
-        </svg>
-      ),
-      title: 'Logout'
-    });
-  }
+  // Split items for mobile view - use the same logic as desktop
+  const allItems = [...sidebarItems];
 
   const mobileVisibleItems = allItems.slice(0, 4);
   const mobileHiddenItems = allItems.slice(4);
@@ -274,6 +275,9 @@ function Sidebar({ currentPath, onNavigate, isLoggedIn, onLogout }) {
             </div>
             <div className="logout-modal-content">
               <p>Are you sure you want to logout?</p>
+              {isAdminLoggedIn && (
+                <p className="admin-logout-note">Admin session will be cleared and page will refresh.</p>
+              )}
             </div>
             <div className="logout-modal-actions">
               <button 

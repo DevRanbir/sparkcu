@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import './Register.css';
+import { registerUser, checkTeamNameExists } from '../services/firebase';
 
 const Register = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     email: '',
     leaderName: '',
+    leaderUid: '',
+    leaderMobile: '',
     teamName: '',
     academicYear: '2nd',
     members: [
@@ -56,13 +59,18 @@ const Register = () => {
     
     switch (step) {
       case 1:
-        if (!formData.email || !formData.leaderName) {
+        if (!formData.email || !formData.leaderName || !formData.leaderUid || !formData.leaderMobile) {
           showToast('Please fill in all required fields.');
           return false;
         }
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailPattern.test(formData.email)) {
           showToast('Please enter a valid email address.');
+          return false;
+        }
+        // Validate mobile number (assuming 10-digit format)
+        if (!/^\+?[\d\s-]{10,15}$/.test(formData.leaderMobile.replace(/\s/g, ''))) {
+          showToast('Please enter a valid mobile number.');
           return false;
         }
         return true;
@@ -114,9 +122,23 @@ const Register = () => {
     }
   };
 
-  const nextStep = () => {
+  const validateStepAsync = async (step) => {
+    if (step === 2) {
+      const teamExists = await checkTeamNameExists(formData.teamName);
+      if (teamExists) {
+        showToast('Team name already exists. Please choose a different name.');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const nextStep = async () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+      const asyncValid = await validateStepAsync(currentStep);
+      if (asyncValid) {
+        setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+      }
     }
   };
 
@@ -137,20 +159,49 @@ const Register = () => {
       return;
     }
 
+    // Also check team name uniqueness before final submission
+    const teamExists = await checkTeamNameExists(formData.teamName);
+    if (teamExists) {
+      showToast('Team name already exists. Please go back and choose a different name.', 'error');
+      return;
+    }
+
     setIsLoading(true);
 
-    // Simulate registration API call
-    setTimeout(() => {
-      showToast('Registration successful! Please check your email for further instructions.', 'success');
+    try {
+      // Prepare user data for Firebase
+      const userData = {
+        leaderName: formData.leaderName,
+        leaderUid: formData.leaderUid,
+        leaderMobile: formData.leaderMobile,
+        teamName: formData.teamName,
+        academicYear: formData.academicYear,
+        members: formData.members.filter(member => member.name.trim() !== '') // Only include members with names
+      };
+
+      // Register user with Firebase
+      const result = await registerUser(formData.email, formData.password, userData);
+
+      if (result.success) {
+        showToast(result.message, 'success');
+        setCurrentStep(5);
+      } else {
+        showToast(result.message, 'error');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      showToast('An unexpected error occurred. Please try again.', 'error');
+    } finally {
       setIsLoading(false);
-      setCurrentStep(5);
-    }, 1500);
+    }
   };
 
   const resetForm = () => {
     setFormData({
       email: '',
       leaderName: '',
+      leaderUid: '',
+      leaderMobile: '',
       teamName: '',
       academicYear: '2nd',
       members: [
@@ -213,6 +264,32 @@ const Register = () => {
           value={formData.leaderName}
           onChange={handleInputChange}
           placeholder="Enter your full name"
+          required
+        />
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="leaderUid">Leader University ID *</label>
+        <input
+          type="text"
+          id="leaderUid"
+          name="leaderUid"
+          value={formData.leaderUid}
+          onChange={handleInputChange}
+          placeholder="e.g., 2021CS001"
+          required
+        />
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="leaderMobile">Leader Mobile Number *</label>
+        <input
+          type="tel"
+          id="leaderMobile"
+          name="leaderMobile"
+          value={formData.leaderMobile}
+          onChange={handleInputChange}
+          placeholder="+91 9876543210"
           required
         />
       </div>

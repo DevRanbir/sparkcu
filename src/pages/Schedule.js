@@ -1,114 +1,60 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { getScheduleData } from '../services/firebase';
 import './Schedule.css';
 
 const Schedule = () => {
-  const scheduleData = [
+  const [scheduleData, setScheduleData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  // Fallback data if Firebase data can't be fetched
+  const fallbackData = [
     {
-      time: "9:00 AM",
-      event: "Registration & Check-in",
-      description: "Arrive, register, and collect your welcome kit",
-      location: "Main Lobby",
+      time: "12:00 PM",
+      event: "Opening Notification",
+      description: "Event Updating soon...",
+      location: "Spark Website",
       type: "registration"
-    },
-    {
-      time: "10:00 AM",
-      event: "Opening Ceremony",
-      description: "Welcome address and event overview",
-      location: "Main Auditorium",
-      type: "ceremony"
-    },
-    {
-      time: "10:30 AM",
-      event: "Team Formation & Networking",
-      description: "Find teammates and finalize your team",
-      location: "Networking Area",
-      type: "networking"
-    },
-    {
-      time: "11:30 AM",
-      event: "Ideation Phase Begins",
-      description: "Start brainstorming and developing your ideas",
-      location: "Work Areas A-D",
-      type: "work"
-    },
-    {
-      time: "1:00 PM",
-      event: "Lunch Break",
-      description: "Networking lunch with mentors and participants",
-      location: "Dining Hall",
-      type: "break"
-    },
-    {
-      time: "2:00 PM",
-      event: "Mentor Speed Dating",
-      description: "Quick sessions with industry mentors",
-      location: "Mentor Lounge",
-      type: "mentoring"
-    },
-    {
-      time: "2:30 PM",
-      event: "Development & Prototyping",
-      description: "Continue working on your ideas and prototypes",
-      location: "Work Areas A-D",
-      type: "work"
-    },
-    {
-      time: "4:00 PM",
-      event: "First Checkpoint",
-      description: "Brief progress presentation to mentors",
-      location: "Presentation Rooms",
-      type: "presentation"
-    },
-    {
-      time: "4:30 PM",
-      event: "Continued Development",
-      description: "Refine your ideas based on feedback",
-      location: "Work Areas A-D",
-      type: "work"
-    },
-    {
-      time: "6:00 PM",
-      event: "Dinner Break",
-      description: "Evening meal and informal networking",
-      location: "Dining Hall",
-      type: "break"
-    },
-    {
-      time: "7:00 PM",
-      event: "Final Development Sprint",
-      description: "Last chance to perfect your pitch and prototype",
-      location: "Work Areas A-D",
-      type: "work"
-    },
-    {
-      time: "8:30 PM",
-      event: "Final Presentations",
-      description: "5-minute pitches to the judging panel",
-      location: "Main Auditorium",
-      type: "presentation"
-    },
-    {
-      time: "9:45 PM",
-      event: "Judging & Deliberation",
-      description: "Judges evaluate presentations and select winners",
-      location: "Judge's Room",
-      type: "judging"
-    },
-    {
-      time: "10:30 PM",
-      event: "Awards Ceremony",
-      description: "Winner announcements and prize distribution",
-      location: "Main Auditorium",
-      type: "ceremony"
-    },
-    {
-      time: "11:00 PM",
-      event: "Closing & Networking",
-      description: "Final networking and event wrap-up",
-      location: "Main Lobby",
-      type: "networking"
     }
   ];
+
+  useEffect(() => {
+    loadScheduleData();
+    
+    // Set up automatic refresh every 30 seconds to sync with admin updates
+    const refreshInterval = setInterval(() => {
+      loadScheduleData();
+    }, 30000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(refreshInterval);
+  }, []);
+
+  const loadScheduleData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await getScheduleData();
+      
+      if (result.success && result.data && result.data.length > 0) {
+        setScheduleData(result.data);
+        setLastUpdated(new Date());
+      } else {
+        // Use fallback data if no data is available
+        setScheduleData(fallbackData);
+        setLastUpdated(new Date());
+      }
+    } catch (error) {
+      console.error('Error loading schedule:', error);
+      setError('Failed to load schedule data');
+      // Use fallback data on error
+      setScheduleData(fallbackData);
+      setLastUpdated(new Date());
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getEventIcon = (type) => {
     switch (type) {
@@ -175,10 +121,52 @@ const Schedule = () => {
       <div className="schedule-header">
         <h1>Event Schedule</h1>
         <p>Complete timeline for SparkCU Ideathon - December 15, 2024</p>
+        {error && (
+          <div className="error-message">
+            <p style={{color: '#e74c3c', fontSize: '14px', marginTop: '8px'}}>
+              {error} - Showing default schedule
+            </p>
+          </div>
+        )}
+        <button 
+          onClick={loadScheduleData} 
+          disabled={loading}
+          style={{
+            marginTop: '10px',
+            padding: '8px 16px',
+            backgroundColor: '#3498db',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontSize: '14px'
+          }}
+        >
+          {loading ? 'Refreshing...' : 'Refresh Schedule'}
+        </button>
+        {lastUpdated && (
+          <p style={{
+            fontSize: '12px',
+            color: '#666',
+            marginTop: '8px',
+            fontStyle: 'italic'
+          }}>
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </p>
+        )}
       </div>
       
       <div className="schedule-container">
-        <div className="timeline">
+        {loading ? (
+          <div className="loading-spinner" style={{
+            textAlign: 'center',
+            padding: '10px',
+            fontSize: '16px',
+            color: '#666'
+          }}>
+          </div>
+        ) : (
+          <div className="timeline">
           {scheduleData.map((item, index) => (
             <div key={index} className={`timeline-item ${item.type}`}>
               <div className="timeline-marker">
@@ -201,6 +189,7 @@ const Schedule = () => {
             </div>
           ))}
         </div>
+        )}
       </div>
       
       <div className="schedule-footer">
@@ -208,7 +197,7 @@ const Schedule = () => {
           <h3>Important Notes</h3>
           <ul>
             <li>Please arrive 15 minutes early for each session</li>
-            <li>Meals and refreshments will be provided</li>
+            <li>Meals and refreshments will not be provided by us</li>
             <li>All times are in local timezone (EST)</li>
             <li>Schedule may be subject to minor adjustments</li>
           </ul>

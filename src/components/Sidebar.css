@@ -374,6 +374,13 @@ body {
   line-height: 1.5;
 }
 
+.admin-logout-note {
+  margin-top: 8px !important;
+  color: #f59e0b !important;
+  font-size: 12px !important;
+  font-style: italic;
+}
+
 .logout-modal-actions {
   padding: 16px 24px 20px;
   display: flex;

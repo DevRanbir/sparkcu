@@ -466,10 +466,6 @@
 
 /* Extra small screens - ultra compact */
 @media (max-width: 360px) {
-  .schedule-page {
-    padding: 0.2rem;
-  }
-  
   .schedule-header h1 {
     font-size: 1.4rem;
   }
