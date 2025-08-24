@@ -3,18 +3,13 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 20px;
 }
 
 .admin-card {
-  background: white;
   border-radius: 15px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   padding: 40px;
   width: 100%;
-  max-width: 400px;
-  backdrop-filter: blur(10px);
 }
 
 .admin-header {

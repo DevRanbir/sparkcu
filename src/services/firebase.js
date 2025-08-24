@@ -409,6 +409,60 @@ export const getScheduleData = async () => {
   }
 };
 
+// Countdown management functions
+export const getCountdownData = async () => {
+  try {
+    const countdownRef = doc(db, 'settings', 'countdown');
+    const docSnap = await getDoc(countdownRef);
+    
+    if (docSnap.exists()) {
+      return {
+        success: true,
+        data: docSnap.data()
+      };
+    } else {
+      // Return default countdown data if none exists
+      return {
+        success: true,
+        data: {
+          targetDate: '',
+          title: 'SparkCU Ideathon 2024',
+          description: 'Event starts in'
+        }
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching countdown:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error fetching countdown data'
+    };
+  }
+};
+
+export const updateCountdownData = async (countdownData) => {
+  try {
+    const countdownRef = doc(db, 'settings', 'countdown');
+    await setDoc(countdownRef, {
+      ...countdownData,
+      updatedAt: serverTimestamp()
+    });
+    
+    return {
+      success: true,
+      message: 'Countdown updated successfully'
+    };
+  } catch (error) {
+    console.error('Error updating countdown:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error updating countdown'
+    };
+  }
+};
+
 export const addScheduleItem = async (itemData) => {
   try {
     const scheduleRef = collection(db, 'schedule');
