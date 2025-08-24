@@ -7,7 +7,12 @@ import {
   signInWithEmailAndPassword,
   signOut,
   sendEmailVerification,
-  updateProfile
+  updateProfile,
+  sendPasswordResetEmail,
+  onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence
 } from "firebase/auth";
 import { 
   getFirestore, 
@@ -116,10 +121,36 @@ export const registerUser = async (email, password, userData) => {
   }
 };
 
-export const loginUser = async (email, password) => {
+export const loginUser = async (email, password, rememberMe = false) => {
   try {
+    // Set persistence based on remember me option
+    const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+    await setPersistence(auth, persistence);
+
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
+
+    // Check if email is verified
+    if (!user.emailVerified) {
+      // Sign out the user since they're not verified
+      await signOut(auth);
+      return {
+        success: false,
+        error: 'email-not-verified',
+        message: 'Please verify your email address before logging in. Check your inbox for the verification link.',
+        needsVerification: true,
+        email: email
+      };
+    }
+
+    // Store remember me preference and login timestamp
+    if (rememberMe) {
+      localStorage.setItem('rememberLogin', 'true');
+    } else {
+      localStorage.removeItem('rememberLogin');
+      // For session-only login, store a timestamp to check on refresh
+      sessionStorage.setItem('loginSession', Date.now().toString());
+    }
 
     // Find the team where this user is the leader
     const teamsRef = collection(db, 'teams');
@@ -148,9 +179,116 @@ export const loginUser = async (email, password) => {
   }
 };
 
+// Password reset function
+export const resetPassword = async (email) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    return {
+      success: true,
+      message: 'Password reset email sent! Check your inbox.'
+    };
+  } catch (error) {
+    console.error('Password reset error:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: getErrorMessage(error.code)
+    };
+  }
+};
+
+// Resend email verification function
+export const resendEmailVerification = async (email, password) => {
+  try {
+    // Sign in temporarily to resend verification
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    
+    if (user.emailVerified) {
+      return {
+        success: false,
+        message: 'Email is already verified. You can login now.'
+      };
+    }
+    
+    await sendEmailVerification(user);
+    // Sign out after sending verification
+    await signOut(auth);
+    
+    return {
+      success: true,
+      message: 'Verification email sent! Please check your inbox and verify your email before logging in.'
+    };
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: getErrorMessage(error.code)
+    };
+  }
+};
+
+// Auth state observer
+export const onAuthStateChange = (callback) => {
+  return onAuthStateChanged(auth, callback);
+};
+
+// Check if user should stay logged in based on remember me setting
+export const checkLoginPersistence = async () => {
+  const isRemembered = localStorage.getItem('rememberLogin') === 'true';
+  const loginSession = sessionStorage.getItem('loginSession');
+  
+  // If user didn't check remember me and there's no active session, sign them out
+  if (!isRemembered && !loginSession) {
+    try {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        await signOut(auth);
+        localStorage.removeItem('rememberLogin');
+        sessionStorage.removeItem('loginSession');
+      }
+    } catch (error) {
+      console.error('Error signing out user:', error);
+    }
+  } else {
+    // Also check if user is verified, if not and they're trying to persist, sign them out
+    const currentUser = auth.currentUser;
+    if (currentUser && !currentUser.emailVerified) {
+      try {
+        await signOut(auth);
+        localStorage.removeItem('rememberLogin');
+        sessionStorage.removeItem('loginSession');
+      } catch (error) {
+        console.error('Error signing out unverified user:', error);
+      }
+    }
+  }
+};
+
+// Setup session management for non-remembered logins
+export const setupSessionManagement = () => {
+  const handleBeforeUnload = () => {
+    const isRemembered = localStorage.getItem('rememberLogin') === 'true';
+    if (!isRemembered) {
+      // Clear session data when browser is closed/refreshed and remember me is not checked
+      sessionStorage.removeItem('loginSession');
+    }
+  };
+
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  
+  return () => {
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+  };
+};
+
 export const logoutUser = async () => {
   try {
     await signOut(auth);
+    // Clear remember login flag and session to ensure clean logout
+    localStorage.removeItem('rememberLogin');
+    sessionStorage.removeItem('loginSession');
     return {
       success: true,
       message: 'Logged out successfully!'
@@ -210,6 +348,8 @@ const getErrorMessage = (errorCode) => {
       return 'Too many failed attempts. Please try again later.';
     case 'auth/network-request-failed':
       return 'Network error. Please check your internet connection.';
+    case 'email-not-verified':
+      return 'Please verify your email address before logging in. Check your inbox for the verification link.';
     default:
       return 'An error occurred. Please try again.';
   }
@@ -562,7 +702,236 @@ export const initializeScheduleData = async (defaultData) => {
   }
 };
 
-// Auth state observer
-export const onAuthStateChanged = (callback) => {
-  return auth.onAuthStateChanged(callback);
+// ========== ANNOUNCEMENTS FUNCTIONS ==========
+
+// Get all announcements
+export const getAnnouncements = async () => {
+  try {
+    const announcementsRef = collection(db, 'announcements');
+    const q = query(announcementsRef, orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    
+    const announcements = [];
+    querySnapshot.forEach((doc) => {
+      announcements.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    return {
+      success: true,
+      announcements: announcements
+    };
+  } catch (error) {
+    console.error('Error fetching announcements:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error fetching announcements'
+    };
+  }
+};
+
+// Add new announcement
+export const addAnnouncement = async (announcementData) => {
+  try {
+    const announcementsRef = collection(db, 'announcements');
+    const docRef = await addDoc(announcementsRef, {
+      ...announcementData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    
+    return {
+      success: true,
+      id: docRef.id,
+      message: 'Announcement added successfully'
+    };
+  } catch (error) {
+    console.error('Error adding announcement:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error adding announcement'
+    };
+  }
+};
+
+// Update announcement
+export const updateAnnouncement = async (id, announcementData) => {
+  try {
+    const announcementRef = doc(db, 'announcements', id);
+    await updateDoc(announcementRef, {
+      ...announcementData,
+      updatedAt: serverTimestamp()
+    });
+    
+    return {
+      success: true,
+      message: 'Announcement updated successfully'
+    };
+  } catch (error) {
+    console.error('Error updating announcement:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error updating announcement'
+    };
+  }
+};
+
+// Delete announcement
+export const deleteAnnouncement = async (id) => {
+  try {
+    const announcementRef = doc(db, 'announcements', id);
+    await deleteDoc(announcementRef);
+    
+    return {
+      success: true,
+      message: 'Announcement deleted successfully'
+    };
+  } catch (error) {
+    console.error('Error deleting announcement:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error deleting announcement'
+    };
+  }
+};
+
+// Get announcement by ID
+export const getAnnouncementById = async (id) => {
+  try {
+    const announcementRef = doc(db, 'announcements', id);
+    const docSnap = await getDoc(announcementRef);
+    
+    if (docSnap.exists()) {
+      return {
+        success: true,
+        announcement: {
+          id: docSnap.id,
+          ...docSnap.data()
+        }
+      };
+    } else {
+      return {
+        success: false,
+        message: 'Announcement not found'
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching announcement:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error fetching announcement'
+    };
+  }
+};
+
+// ========== TEAM SUBMISSION FUNCTIONS ==========
+
+// Update team submission links
+export const updateTeamSubmission = async (userId, submissionData) => {
+  try {
+    // Find the team where this user is the leader
+    const teamsRef = collection(db, 'teams');
+    const q = query(teamsRef, where('leaderFirebaseUid', '==', userId));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      return {
+        success: false,
+        message: 'Team not found for this user'
+      };
+    }
+
+    const teamDoc = querySnapshot.docs[0];
+    const teamRef = doc(db, 'teams', teamDoc.id);
+    
+    await updateDoc(teamRef, {
+      submissionLinks: {
+        ...submissionData,
+        lastUpdated: serverTimestamp()
+      }
+    });
+
+    return {
+      success: true,
+      message: 'Submission links updated successfully'
+    };
+  } catch (error) {
+    console.error('Error updating submission:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error updating submission links'
+    };
+  }
+};
+
+// Get team submission links
+export const getTeamSubmission = async (userId) => {
+  try {
+    // Find the team where this user is the leader
+    const teamsRef = collection(db, 'teams');
+    const q = query(teamsRef, where('leaderFirebaseUid', '==', userId));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      return {
+        success: false,
+        message: 'Team not found for this user'
+      };
+    }
+
+    const teamData = querySnapshot.docs[0].data();
+    
+    return {
+      success: true,
+      submissionLinks: teamData.submissionLinks || null
+    };
+  } catch (error) {
+    console.error('Error fetching submission:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error fetching submission links'
+    };
+  }
+};
+
+// Get team data by user ID
+export const getTeamByUserId = async (userId) => {
+  try {
+    const teamsRef = collection(db, 'teams');
+    const q = query(teamsRef, where('leaderFirebaseUid', '==', userId));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      return {
+        success: false,
+        message: 'Team not found for this user'
+      };
+    }
+
+    const teamData = querySnapshot.docs[0].data();
+    
+    return {
+      success: true,
+      teamData: {
+        id: querySnapshot.docs[0].id,
+        ...teamData
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching team data:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error fetching team data'
+    };
+  }
 };

@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { isAdminLoggedIn, getAdminSession, logoutAdmin, getAllTeams, getCountdownData, updateCountdownData, getScheduleData } from '../services/firebase';
+import { 
+  isAdminLoggedIn, 
+  getAdminSession, 
+  logoutAdmin, 
+  getAllTeams, 
+  getCountdownData, 
+  updateCountdownData, 
+  getScheduleData,
+  getAnnouncements,
+  addAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement
+} from '../services/firebase';
 import ScheduleAdmin from './ScheduleAdmin';
 import * as XLSX from 'xlsx';
 import './Management.css';
@@ -22,6 +34,25 @@ function Management() {
     title: 'SparkCU Ideathon',
     description: 'Event starts in'
   });
+  
+  // Announcements state
+  const [announcements, setAnnouncements] = useState([]);
+  const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+  const [announcementForm, setAnnouncementForm] = useState({
+    title: '',
+    message: '',
+    type: 'info' // info, event, update, warning
+  });
+  
+  // Submissions state
+  const [submissionsData, setSubmissionsData] = useState([]);
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [showSubmissionDetails, setShowSubmissionDetails] = useState(false);
+  const [submissionSearchTerm, setSubmissionSearchTerm] = useState('');
+  const [submissionFilter, setSubmissionFilter] = useState('all');
+  const [scheduleData, setScheduleData] = useState([]);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,6 +66,9 @@ function Management() {
     // Fetch teams data on component mount
     fetchTeamsData();
     fetchCountdownData();
+    fetchAnnouncements();
+    fetchSubmissionsData();
+    fetchScheduleData();
 
     // Handle window resize for responsive design
     const handleResize = () => {
@@ -82,6 +116,34 @@ function Management() {
       }
     } catch (error) {
       console.error('Error fetching countdown data:', error);
+    }
+  };
+
+  const fetchSubmissionsData = async () => {
+    try {
+      const result = await getAllTeams();
+      if (result.success) {
+        // Filter teams that have submission links
+        const teamsWithSubmissions = result.teams.filter(team => 
+          team.submissionLinks && team.submissionLinks.presentationLink
+        );
+        setSubmissionsData(teamsWithSubmissions);
+      } else {
+        console.error('Failed to fetch submissions:', result.message);
+      }
+    } catch (error) {
+      console.error('Error fetching submissions:', error);
+    }
+  };
+
+  const fetchScheduleData = async () => {
+    try {
+      const result = await getScheduleData();
+      if (result.success && result.data) {
+        setScheduleData(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching schedule data:', error);
     }
   };
 
@@ -189,6 +251,243 @@ function Management() {
     }
   };
 
+  // ========== SUBMISSION FUNCTIONS ==========
+  
+  const handleViewSubmissionDetails = (team) => {
+    setSelectedSubmission(team);
+    setShowSubmissionDetails(true);
+  };
+
+  const handleCloseSubmissionDetails = () => {
+    setSelectedSubmission(null);
+    setShowSubmissionDetails(false);
+  };
+
+  const handleSubmissionSearchChange = (e) => {
+    setSubmissionSearchTerm(e.target.value);
+  };
+
+  const handleSubmissionFilterChange = (filter) => {
+    setSubmissionFilter(filter);
+  };
+
+  // Filter submissions based on search term and filter type
+  const filteredSubmissions = submissionsData.filter(team => {
+    // Apply search term filter
+    const matchesSearch = submissionSearchTerm === '' || 
+      team.teamName.toLowerCase().includes(submissionSearchTerm.toLowerCase()) ||
+      team.leaderName.toLowerCase().includes(submissionSearchTerm.toLowerCase()) ||
+      team.academicYear.toLowerCase().includes(submissionSearchTerm.toLowerCase());
+
+    // Apply filter type
+    let matchesFilter = true;
+    switch (submissionFilter) {
+      case 'today':
+        if (team.submissionLinks && team.submissionLinks.lastUpdated) {
+          const today = new Date();
+          const submissionDate = team.submissionLinks.lastUpdated.toDate ? 
+            team.submissionLinks.lastUpdated.toDate() : new Date(team.submissionLinks.lastUpdated);
+          matchesFilter = submissionDate.toDateString() === today.toDateString();
+        } else {
+          matchesFilter = false;
+        }
+        break;
+      case 'this-week':
+        if (team.submissionLinks && team.submissionLinks.lastUpdated) {
+          const now = new Date();
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          const submissionDate = team.submissionLinks.lastUpdated.toDate ? 
+            team.submissionLinks.lastUpdated.toDate() : new Date(team.submissionLinks.lastUpdated);
+          matchesFilter = submissionDate >= weekAgo && submissionDate <= now;
+        } else {
+          matchesFilter = false;
+        }
+        break;
+      case 'all':
+      default:
+        matchesFilter = true;
+        break;
+    }
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const getSubmissionFilterDisplayName = (filter) => {
+    switch (filter) {
+      case 'all': return 'All Submissions';
+      case 'today': return 'Submitted Today';
+      case 'this-week': return 'This Week';
+      default: return 'All Submissions';
+    }
+  };
+
+  const formatSubmissionDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  };
+
+  const getNextScheduledTask = () => {
+    if (!scheduleData || scheduleData.length === 0) {
+      return { event: 'No tasks scheduled', time: 'N/A' };
+    }
+
+    const now = new Date();
+    const today = now.toDateString();
+    
+    // Find events for today that haven't passed yet
+    const todayEvents = scheduleData.filter(item => {
+      try {
+        // Parse time (assuming format like "09:00 AM" or "14:30")
+        const [time, period] = item.time.split(' ');
+        let [hours, minutes] = time.split(':').map(Number);
+        
+        if (period && period.toUpperCase() === 'PM' && hours !== 12) {
+          hours += 12;
+        } else if (period && period.toUpperCase() === 'AM' && hours === 12) {
+          hours = 0;
+        }
+        
+        const eventTime = new Date();
+        eventTime.setHours(hours, minutes || 0, 0, 0);
+        
+        return eventTime > now;
+      } catch (error) {
+        return false;
+      }
+    }).sort((a, b) => {
+      // Sort by timeOrder if available, otherwise by time
+      if (a.timeOrder && b.timeOrder) {
+        return a.timeOrder - b.timeOrder;
+      }
+      return a.time.localeCompare(b.time);
+    });
+    
+    if (todayEvents.length > 0) {
+      return {
+        event: todayEvents[0].event || 'Upcoming task',
+        time: todayEvents[0].time || 'TBD'
+      };
+    }
+    
+    // If no events today, return the first scheduled event
+    const sortedEvents = [...scheduleData].sort((a, b) => {
+      if (a.timeOrder && b.timeOrder) {
+        return a.timeOrder - b.timeOrder;
+      }
+      return a.time.localeCompare(b.time);
+    });
+    
+    return {
+      event: sortedEvents[0]?.event || 'Next scheduled task',
+      time: sortedEvents[0]?.time || 'TBD'
+    };
+  };
+
+  // ========== ANNOUNCEMENTS FUNCTIONS ==========
+  
+  const fetchAnnouncements = async () => {
+    try {
+      const result = await getAnnouncements();
+      if (result.success) {
+        setAnnouncements(result.announcements);
+      } else {
+        console.error('Failed to fetch announcements:', result.message);
+      }
+    } catch (error) {
+      console.error('Error fetching announcements:', error);
+    }
+  };
+
+  const handleAnnouncementSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      let result;
+      if (editingAnnouncement) {
+        result = await updateAnnouncement(editingAnnouncement.id, announcementForm);
+      } else {
+        result = await addAnnouncement(announcementForm);
+      }
+      
+      if (result.success) {
+        alert(editingAnnouncement ? 'Announcement updated successfully!' : 'Announcement created successfully!');
+        fetchAnnouncements();
+        resetAnnouncementForm();
+      } else {
+        alert('Error: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error saving announcement:', error);
+      alert('Error saving announcement');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditAnnouncement = (announcement) => {
+    setEditingAnnouncement(announcement);
+    setAnnouncementForm({
+      title: announcement.title,
+      message: announcement.message,
+      type: announcement.type
+    });
+    setShowAnnouncementForm(true);
+  };
+
+  const handleDeleteAnnouncement = async (id) => {
+    if (window.confirm('Are you sure you want to delete this announcement?')) {
+      setLoading(true);
+      try {
+        const result = await deleteAnnouncement(id);
+        if (result.success) {
+          alert('Announcement deleted successfully!');
+          fetchAnnouncements();
+        } else {
+          alert('Error: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error deleting announcement:', error);
+        alert('Error deleting announcement');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const resetAnnouncementForm = () => {
+    setAnnouncementForm({
+      title: '',
+      message: '',
+      type: 'info'
+    });
+    setEditingAnnouncement(null);
+    setShowAnnouncementForm(false);
+  };
+
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const now = new Date();
+    const diffInHours = (now - date) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor(diffInHours * 60);
+      return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
+    } else if (diffInHours < 24) {
+      const hours = Math.floor(diffInHours);
+      return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+    } else if (diffInHours < 168) { // 7 days
+      const days = Math.floor(diffInHours / 24);
+      return `${days} day${days !== 1 ? 's' : ''} ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
   const downloadExcelReport = async () => {
     setLoading(true);
     try {
@@ -198,12 +497,9 @@ function Management() {
       // Prepare teams data
       const teamsData = teams.map(team => {
         const membersData = team.members || [];
-        const memberDetails = membersData.map(member => ({
-          Name: member.name || 'N/A',
-          Email: member.email || 'N/A',
-          Mobile: member.mobile || 'N/A',
-          UID: member.uid || member.firebaseUid || 'N/A'
-        }));
+        const memberDetails = membersData.map(member => 
+          `${member.name || 'N/A'} (${member.email || 'N/A'}) - ${member.mobile || 'N/A'} - UID: ${member.uid || member.firebaseUid || 'N/A'}`
+        );
 
         return {
           'Team Name': team.teamName,
@@ -217,15 +513,40 @@ function Management() {
               new Date(team.createdAt).toLocaleDateString()
             ) : 'N/A',
           'Status': team.emailVerified ? 'Verified' : 'Pending',
-          'Member Details': memberDetails.map(m => 
-            `${m.Name} (${m.Email}) - ${m.Mobile} - UID: ${m.UID}`
-          ).join(' | ')
+          'Has Submission': team.submissionLinks ? 'Yes' : 'No',
+          'Member Details': memberDetails.join('\n')
         };
       });
 
       // Create teams worksheet
       const teamsWorksheet = XLSX.utils.json_to_sheet(teamsData);
       XLSX.utils.book_append_sheet(workbook, teamsWorksheet, 'Teams');
+
+      // Prepare submissions data
+      const submissionsExportData = submissionsData.map(team => {
+        return {
+          'Team Name': team.teamName,
+          'Leader Name': team.leaderName,
+          'Leader Email': team.leaderEmail,
+          'Academic Year': team.academicYear,
+          'Submission Date': team.submissionLinks?.lastUpdated ? 
+            formatSubmissionDate(team.submissionLinks.lastUpdated) : 'N/A',
+          'Presentation Link': team.submissionLinks?.presentationLink || 'Not provided',
+          'YouTube Link': team.submissionLinks?.youtubeLink || 'Not provided',
+          'GitHub Link': team.submissionLinks?.githubLink || 'Not provided',
+          'Other Link': team.submissionLinks?.otherLink || 'Not provided',
+          'Members Count': team.members ? team.members.length : 0,
+          'Registration Date': team.createdAt ? 
+            (team.createdAt.toDate ? 
+              team.createdAt.toDate().toLocaleDateString() : 
+              new Date(team.createdAt).toLocaleDateString()
+            ) : 'N/A'
+        };
+      });
+
+      // Create submissions worksheet
+      const submissionsWorksheet = XLSX.utils.json_to_sheet(submissionsExportData);
+      XLSX.utils.book_append_sheet(workbook, submissionsWorksheet, 'Submissions');
 
       // Get schedule data
       const scheduleResult = await getScheduleData();
@@ -245,6 +566,21 @@ function Management() {
       // Create schedule worksheet
       const scheduleWorksheet = XLSX.utils.json_to_sheet(scheduleData);
       XLSX.utils.book_append_sheet(workbook, scheduleWorksheet, 'Schedule');
+
+      // Prepare announcements data
+      const announcementsExportData = announcements.map(announcement => ({
+        'Title': announcement.title,
+        'Message': announcement.message,
+        'Type': announcement.type,
+        'Created Date': announcement.createdAt ? 
+          formatTimestamp(announcement.createdAt) : 'N/A',
+        'Last Updated': announcement.updatedAt ? 
+          formatTimestamp(announcement.updatedAt) : 'N/A'
+      }));
+
+      // Create announcements worksheet
+      const announcementsWorksheet = XLSX.utils.json_to_sheet(announcementsExportData);
+      XLSX.utils.book_append_sheet(workbook, announcementsWorksheet, 'Announcements');
 
       // Generate filename with current date
       const currentDate = new Date().toISOString().split('T')[0];
@@ -289,6 +625,41 @@ function Management() {
                   const teamDate = team.createdAt.toDate ? team.createdAt.toDate() : new Date(team.createdAt);
                   return teamDate.toDateString() === today.toDateString();
                 }).length}</p>
+              </div>
+              <div className="stat-card">
+                <h4>Total Submissions</h4>
+                <p className="stat-number">{submissionsData.length}</p>
+                <small className="stat-subtitle">Projects submitted</small>
+              </div>
+              <div className="stat-card">
+                <h4>Event Countdown</h4>
+                <p className="stat-text">{countdownData.title}</p>
+                <small className="stat-subtitle">
+                  {countdownData.targetDate ? 
+                    new Date(countdownData.targetDate).toLocaleDateString() : 
+                    'Not set'
+                  }
+                </small>
+              </div>
+              <div className="stat-card">
+                <h4>Next Scheduled Task</h4>
+                <p className="stat-text">{getNextScheduledTask().event}</p>
+                <small className="stat-subtitle">{getNextScheduledTask().time}</small>
+              </div>
+              <div className="stat-card">
+                <h4>Last Announcement</h4>
+                <p className="stat-text">
+                  {announcements.length > 0 ? 
+                    announcements[0].title : 
+                    'No announcements'
+                  }
+                </p>
+                <small className="stat-subtitle">
+                  {announcements.length > 0 ? 
+                    formatTimestamp(announcements[0].createdAt) : 
+                    'None sent'
+                  }
+                </small>
               </div>
               <div className="stat-card">
                 <h4>System Status</h4>
@@ -583,6 +954,313 @@ function Management() {
         );
       case 'schedule':
         return <ScheduleAdmin />;
+      case 'submissions':
+        return (
+          <div className="tab-content">
+            <div className="submissions-header">
+              <h3>Team Submissions</h3>
+              <div className="submissions-stats">
+                <span className="submissions-count">
+                  Showing {filteredSubmissions.length} of {submissionsData.length} submissions
+                </span>
+                <button onClick={fetchSubmissionsData} className="refresh-btn" disabled={loading}>
+                  {loading ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
+            </div>
+
+            {/* Search and Filter Section */}
+            <div className="search-filter-section">
+              <div className="search-container">
+                <div className="search-input-wrapper">
+                  <input
+                    type="text"
+                    placeholder="Search teams, academic year..."
+                    value={submissionSearchTerm}
+                    onChange={handleSubmissionSearchChange}
+                    className="search-input"
+                  />
+                  <div className="filter-dropdown-container">
+                    <select 
+                      className="filter-select"
+                      value={submissionFilter}
+                      onChange={(e) => handleSubmissionFilterChange(e.target.value)}
+                    >
+                      <option value="all">All Submissions</option>
+                      <option value="today">Submitted Today</option>
+                      <option value="this-week">This Week</option>
+                    </select>
+                  </div>
+                </div>
+                {(submissionSearchTerm || submissionFilter !== 'all') && (
+                  <button 
+                    className="clear-filters-btn"
+                    onClick={() => {
+                      setSubmissionSearchTerm('');
+                      setSubmissionFilter('all');
+                    }}
+                    title="Clear all filters"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {loading ? (
+              <div className="loading-container">
+                <p>Loading submissions data...</p>
+              </div>
+            ) : filteredSubmissions.length > 0 ? (
+              isMobile ? (
+                // Mobile Card Layout
+                <div className="submissions-cards-container">
+                  {filteredSubmissions.map((team) => (
+                    <div key={team.id} className="submission-card">
+                      <div className="submission-card-header">
+                        <h4 className="submission-card-name">{team.teamName}</h4>
+                        <span className="submission-date">
+                          {formatSubmissionDate(team.submissionLinks?.lastUpdated)}
+                        </span>
+                      </div>
+                      <div className="submission-card-info">
+                        <div className="submission-card-row">
+                          <span className="label">Academic Year:</span>
+                          <span className="value">{team.academicYear}</span>
+                        </div>
+                        <div className="submission-card-row">
+                          <span className="label">Leader:</span>
+                          <span className="value">{team.leaderName}</span>
+                        </div>
+                        <div className="submission-card-row">
+                          <span className="label">Presentation:</span>
+                          <a 
+                            href={team.submissionLinks?.presentationLink} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="submission-link"
+                          >
+                            View Presentation
+                          </a>
+                        </div>
+                      </div>
+                      <div className="submission-card-actions">
+                        <button 
+                          className="view-submission-details-btn-mobile" 
+                          onClick={() => handleViewSubmissionDetails(team)}
+                        >
+                          View All Links
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                // Desktop Table Layout
+                <div className="submissions-table-container">
+                  <table className="submissions-table">
+                    <thead>
+                      <tr>
+                        <th>Team Name</th>
+                        <th>Academic Year</th>
+                        <th>Submission Date</th>
+                        <th>Presentation Link</th>
+                        <th>All Links</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredSubmissions.map((team) => (
+                        <tr key={team.id}>
+                          <td className="team-name">{team.teamName}</td>
+                          <td>{team.academicYear}</td>
+                          <td>
+                            {formatSubmissionDate(team.submissionLinks?.lastUpdated)}
+                          </td>
+                          <td>
+                            <a 
+                              href={team.submissionLinks?.presentationLink} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="submission-link"
+                            >
+                              View Presentation
+                            </a>
+                          </td>
+                          <td>
+                            <button 
+                              className="view-submission-details-btn" 
+                              onClick={() => handleViewSubmissionDetails(team)}
+                              title="View All Submission Links"
+                            >
+                              View All Links
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            ) : (
+              <div className="no-submissions">
+                {submissionsData.length === 0 ? (
+                  <p>No submissions received yet.</p>
+                ) : (
+                  <p>No submissions match your current search and filter criteria.</p>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      case 'announcements':
+        return (
+          <div className="tab-content">
+            <div className="announcements-header">
+              <h3>Announcements Management</h3>
+              <button 
+                className="add-announcement-btn"
+                onClick={() => setShowAnnouncementForm(true)}
+                disabled={loading}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Add New Announcement
+              </button>
+            </div>
+
+            {/* Announcement Form Modal */}
+            {showAnnouncementForm && (
+              <div className="announcement-form-overlay">
+                <div className="announcement-form-modal">
+                  <div className="modal-header">
+                    <h4>{editingAnnouncement ? 'Edit Announcement' : 'Create New Announcement'}</h4>
+                    <button className="close-btn" onClick={resetAnnouncementForm}>×</button>
+                  </div>
+                  
+                  <form onSubmit={handleAnnouncementSubmit} className="announcement-form">
+                    <div className="form-group">
+                      <label htmlFor="announcement-title">Title:</label>
+                      <input
+                        type="text"
+                        id="announcement-title"
+                        value={announcementForm.title}
+                        onChange={(e) => setAnnouncementForm({...announcementForm, title: e.target.value})}
+                        placeholder="Enter announcement title"
+                        required
+                        maxLength="100"
+                      />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="announcement-type">Type:</label>
+                      <select
+                        id="announcement-type"
+                        value={announcementForm.type}
+                        onChange={(e) => setAnnouncementForm({...announcementForm, type: e.target.value})}
+                        required
+                      >
+                        <option value="info">Info</option>
+                        <option value="event">Event</option>
+                        <option value="update">Update</option>
+                        <option value="warning">Warning</option>
+                      </select>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="announcement-message">Message:</label>
+                      <textarea
+                        id="announcement-message"
+                        value={announcementForm.message}
+                        onChange={(e) => setAnnouncementForm({...announcementForm, message: e.target.value})}
+                        placeholder="Enter announcement message"
+                        required
+                        rows="4"
+                        maxLength="500"
+                      />
+                      <small className="char-count">
+                        {announcementForm.message.length}/500 characters
+                      </small>
+                    </div>
+                    
+                    <div className="form-actions">
+                      <button type="button" className="cancel-btn" onClick={resetAnnouncementForm}>
+                        Cancel
+                      </button>
+                      <button type="submit" className="save-btn" disabled={loading}>
+                        {loading ? 'Saving...' : (editingAnnouncement ? 'Update' : 'Create')}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Announcements List */}
+            <div className="announcements-management-list">
+              {announcements.length > 0 ? (
+                announcements.map((announcement) => (
+                  <div key={announcement.id} className={`announcement-management-card ${announcement.type}`}>
+                    <div className="announcement-content">
+                      <div className="announcement-header">
+                        <h4 className="announcement-title">{announcement.title}</h4>
+                        <span className={`type-badge ${announcement.type}`}>
+                          {announcement.type.charAt(0).toUpperCase() + announcement.type.slice(1)}
+                        </span>
+                      </div>
+                      <p className="announcement-message">{announcement.message}</p>
+                      <div className="announcement-meta">
+                        <span className="timestamp">
+                          Created: {formatTimestamp(announcement.createdAt)}
+                        </span>
+                        {announcement.updatedAt && announcement.updatedAt !== announcement.createdAt && (
+                          <span className="timestamp">
+                            Updated: {formatTimestamp(announcement.updatedAt)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="announcement-actions">
+                      <button 
+                        className="edit-btn"
+                        onClick={() => handleEditAnnouncement(announcement)}
+                        title="Edit Announcement"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </button>
+                      <button 
+                        className="delete-btn"
+                        onClick={() => handleDeleteAnnouncement(announcement.id)}
+                        title="Delete Announcement"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3,6 5,6 21,6"/>
+                          <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"/>
+                          <line x1="10" y1="11" x2="10" y2="17"/>
+                          <line x1="14" y1="11" x2="14" y2="17"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="no-announcements">
+                  <p>No announcements created yet.</p>
+                  <button 
+                    className="create-first-btn"
+                    onClick={() => setShowAnnouncementForm(true)}
+                  >
+                    Create Your First Announcement
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
       case 'settings':
         return (
           <div className="tab-content">
@@ -606,19 +1284,10 @@ function Management() {
                   {loading ? 'Generating...' : '📊 Download Excel Report'}
                 </button>
                 <small className="export-description">
-                  Includes: Teams data with member details and current schedule information
+                  Includes: Teams data with member details, submission links, schedule information, and announcements
                 </small>
               </div>
-              
-              <h4>Available Settings</h4>
-              <p>System configuration settings will be implemented here.</p>
-              <ul>
-                <li>Registration settings</li>
-                <li>Email templates</li>
-                <li>Database backups</li>
-                <li>Security settings</li>
-                <li>Admin password management</li>
-              </ul>
+
             </div>
           </div>
         );
@@ -698,6 +1367,32 @@ function Management() {
             Schedule
           </button>
           <button 
+            className={`tab-btn ${activeTab === 'submissions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('submissions')}
+          >
+            <span className="tab-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10,9 9,9 8,9"/>
+              </svg>
+            </span>
+            Submissions
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'announcements' ? 'active' : ''}`}
+            onClick={() => setActiveTab('announcements')}
+          >
+            <span className="tab-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+              </svg>
+            </span>
+            Announcements
+          </button>
+          <button 
             className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
             onClick={() => setActiveTab('settings')}
           >
@@ -715,6 +1410,113 @@ function Management() {
           {renderTabContent()}
         </div>
       </div>
+
+      {/* Submission Details Modal */}
+      {showSubmissionDetails && selectedSubmission && (
+        <div className="submission-details-modal-overlay">
+          <div className="submission-details-modal">
+            <div className="modal-header">
+              <h2>Submission Details: {selectedSubmission.teamName}</h2>
+              <button className="close-btn" onClick={handleCloseSubmissionDetails}>×</button>
+            </div>
+            
+            <div className="modal-content">
+              <div className="submission-info-section">
+                <h3>Team Information</h3>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <label>Team Name:</label>
+                    <span>{selectedSubmission.teamName}</span>
+                  </div>
+                  <div className="info-item">
+                    <label>Leader:</label>
+                    <span>{selectedSubmission.leaderName}</span>
+                  </div>
+                  <div className="info-item">
+                    <label>Academic Year:</label>
+                    <span>{selectedSubmission.academicYear}</span>
+                  </div>
+                  <div className="info-item">
+                    <label>Last Updated:</label>
+                    <span>
+                      {formatSubmissionDate(selectedSubmission.submissionLinks?.lastUpdated)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="submission-links-section">
+                <h3>Submission Links</h3>
+                <div className="submission-links-grid">
+                  <div className="submission-link-item">
+                    <label>📊 Presentation (Required):</label>
+                    {selectedSubmission.submissionLinks?.presentationLink ? (
+                      <a 
+                        href={selectedSubmission.submissionLinks.presentationLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="submission-link-url"
+                      >
+                        {selectedSubmission.submissionLinks.presentationLink}
+                      </a>
+                    ) : (
+                      <span className="no-link">Not provided</span>
+                    )}
+                  </div>
+                  
+                  <div className="submission-link-item">
+                    <label>🎥 YouTube Video:</label>
+                    {selectedSubmission.submissionLinks?.youtubeLink ? (
+                      <a 
+                        href={selectedSubmission.submissionLinks.youtubeLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="submission-link-url"
+                      >
+                        {selectedSubmission.submissionLinks.youtubeLink}
+                      </a>
+                    ) : (
+                      <span className="no-link">Not provided</span>
+                    )}
+                  </div>
+                  
+                  <div className="submission-link-item">
+                    <label>💻 GitHub Repository:</label>
+                    {selectedSubmission.submissionLinks?.githubLink ? (
+                      <a 
+                        href={selectedSubmission.submissionLinks.githubLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="submission-link-url"
+                      >
+                        {selectedSubmission.submissionLinks.githubLink}
+                      </a>
+                    ) : (
+                      <span className="no-link">Not provided</span>
+                    )}
+                  </div>
+                  
+                  <div className="submission-link-item">
+                    <label>🔗 Other Link:</label>
+                    {selectedSubmission.submissionLinks?.otherLink ? (
+                      <a 
+                        href={selectedSubmission.submissionLinks.otherLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="submission-link-url"
+                      >
+                        {selectedSubmission.submissionLinks.otherLink}
+                      </a>
+                    ) : (
+                      <span className="no-link">Not provided</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Team Details Modal */}
       {showTeamDetails && selectedTeam && (

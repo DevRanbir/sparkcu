@@ -60,16 +60,30 @@ function AppContent() {
       if (isAdminLoggedIn) {
         // Admin logout
         logoutAdmin();
+        setIsAdminLoggedIn(false);
         // Reload the page to ensure clean state
         window.location.href = '/home';
       } else {
         // Regular user logout
-        await logoutUser();
-        navigate('/home');
+        const result = await logoutUser();
+        if (result.success) {
+          // Force update the logged in state
+          setIsLoggedIn(false);
+          // Navigate to home
+          navigate('/home');
+        } else {
+          console.error('Logout failed:', result.message);
+          // Force logout anyway
+          setIsLoggedIn(false);
+          navigate('/home');
+        }
       }
     } catch (error) {
       console.error('Logout error:', error);
-      // Fallback logout
+      // Fallback logout - force clean state
+      setIsLoggedIn(false);
+      setIsAdminLoggedIn(false);
+      localStorage.removeItem('rememberLogin');
       navigate('/home');
     }
   };

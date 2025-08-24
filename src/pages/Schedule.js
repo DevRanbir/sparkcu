@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getScheduleData } from '../services/firebase';
 import './Schedule.css';
 
@@ -19,19 +19,7 @@ const Schedule = () => {
     }
   ];
 
-  useEffect(() => {
-    loadScheduleData();
-    
-    // Set up automatic refresh every 30 seconds to sync with admin updates
-    const refreshInterval = setInterval(() => {
-      loadScheduleData();
-    }, 30000);
-
-    // Cleanup interval on component unmount
-    return () => clearInterval(refreshInterval);
-  }, []);
-
-  const loadScheduleData = async () => {
+  const loadScheduleData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -54,7 +42,19 @@ const Schedule = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadScheduleData();
+    
+    // Set up automatic refresh every 30 seconds to sync with admin updates
+    const refreshInterval = setInterval(() => {
+      loadScheduleData();
+    }, 30000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(refreshInterval);
+  }, [loadScheduleData]);
 
   const getEventIcon = (type) => {
     switch (type) {

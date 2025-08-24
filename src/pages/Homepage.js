@@ -2,27 +2,142 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Homepage.css';
 import RotatingText from '../TextAnimations/RotatingText/RotatingText';
+import { getAllTeams, getScheduleData, getAnnouncements, getCountdownData } from '../services/firebase';
 
 function Homepage() {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [teams, setTeams] = useState([]);
+  const [scheduleData, setScheduleData] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [countdownData, setCountdownData] = useState({});
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (videoRef.current) {
-        videoRef.current.play();
-        setIsPlaying(true);
-      }
-    }, 2000); // 2 seconds delay
-
-    return () => clearTimeout(timer);
+    // Remove automatic video play to avoid browser restrictions
+    // Video will only play when user clicks on it
+    
+    // Fetch data for stats
+    fetchData();
   }, []);
 
+  // Countdown timer effect
+  useEffect(() => {
+    if (countdownData.targetDate) {
+      const interval = setInterval(() => {
+        calculateTimeLeft();
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [countdownData.targetDate]);
+
+  const fetchData = async () => {
+    try {
+      const [teamsResponse, scheduleResponse, announcementsResponse, countdownResponse] = await Promise.all([
+        getAllTeams(),
+        getScheduleData(),
+        getAnnouncements(),
+        getCountdownData()
+      ]);
+      
+      // Extract teams data
+      const teamsData = teamsResponse?.success && teamsResponse?.teams ? teamsResponse.teams : [];
+      
+      // Extract schedule data
+      const scheduleDataArray = scheduleResponse?.success && scheduleResponse?.data ? scheduleResponse.data : [];
+      
+      // Extract announcements data
+      const announcementsData = announcementsResponse?.success && announcementsResponse?.announcements ? announcementsResponse.announcements : [];
+      
+      // Extract countdown data
+      const countdownDataObj = countdownResponse?.success && countdownResponse?.data ? countdownResponse.data : {};
+      
+      setTeams(teamsData);
+      setScheduleData(scheduleDataArray);
+      setAnnouncements(announcementsData);
+      setCountdownData(countdownDataObj);
+      
+      console.log('Fetched data:', {
+        teams: teamsData.length,
+        schedule: scheduleDataArray.length,
+        announcements: announcementsData.length,
+        countdown: countdownDataObj
+      });
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // Set default values on error
+      setTeams([]);
+      setScheduleData([]);
+      setAnnouncements([]);
+      setCountdownData({});
+    }
+  };
+
+  const calculateTimeLeft = () => {
+    if (!countdownData.targetDate) return;
+    
+    const now = new Date().getTime();
+    const target = new Date(countdownData.targetDate).getTime();
+    const difference = target - now;
+
+    if (difference > 0) {
+      setTimeLeft({
+        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((difference % (1000 * 60)) / 1000)
+      });
+    } else {
+      setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+    }
+  };
+
+  const getNextScheduledTask = () => {
+    if (!scheduleData.length) return { event: 'No scheduled tasks', time: 'None' };
+    
+    const now = new Date();
+    const upcoming = scheduleData
+      .filter(item => new Date(item.date + ' ' + item.time) > now)
+      .sort((a, b) => new Date(a.date + ' ' + a.time) - new Date(b.date + ' ' + b.time));
+    
+    if (upcoming.length > 0) {
+      return {
+        event: upcoming[0].event,
+        time: new Date(upcoming[0].date + ' ' + upcoming[0].time).toLocaleDateString()
+      };
+    }
+    
+    return { event: 'No upcoming tasks', time: 'None' };
+  };
+
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return 'Unknown';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString();
+  };
+
   const handleVideoClick = () => {
-    if (videoRef.current && !isPlaying) {
-      videoRef.current.currentTime = 0; // Reset to beginning
-      videoRef.current.play();
-      setIsPlaying(true);
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        videoRef.current.currentTime = 0; // Reset to beginning
+        videoRef.current.play()
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch((error) => {
+            console.log('Video play was prevented:', error);
+            // Handle the error gracefully - video won't play until user interacts
+          });
+      }
     }
   };
 
@@ -84,8 +199,39 @@ function Homepage() {
             </div>
           </section>
 
+          {/* Countdown Section */}
+          <section className="countdown-section">
+            <h2>Event Countdown</h2>
+            <div className="countdown-container">
+              <h3 className="countdown-title">For {countdownData.title || 'SparkCU Ideathon'}</h3>
+              {countdownData.targetDate && (
+                <p className="countdown-date">
+                  Event Date: {new Date(countdownData.targetDate).toLocaleDateString()}
+                </p>
+              )}
+              <div className="countdown-timer">
+                <div className="time-unit">
+                  <span className="time-number">{timeLeft.days}</span>
+                  <span className="time-label">Days</span>
+                </div>
+                <div className="time-unit">
+                  <span className="time-number">{timeLeft.hours}</span>
+                  <span className="time-label">Hours</span>
+                </div>
+                <div className="time-unit">
+                  <span className="time-number">{timeLeft.minutes}</span>
+                  <span className="time-label">Minutes</span>
+                </div>
+                <div className="time-unit">
+                  <span className="time-number">{timeLeft.seconds}</span>
+                  <span className="time-label">Seconds</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section className="video-section">
-            <h2>Watch SparkCU Highlights</h2>
+            <h2>Watch SparkCU Introductionary Video</h2>
             <div className="youtube-container">
               <iframe
                 className="youtube-video"
@@ -95,6 +241,34 @@ function Homepage() {
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
               ></iframe>
+            </div>
+          </section>
+
+          {/* Stats Section */}
+          <section className="stats-section">
+            <h2>Competition Statistics</h2>
+            <div className="stats-grid">
+              <div className="stat-card">
+                <h4>Total Teams</h4>
+                <p className="stat-number">{Array.isArray(teams) ? teams.length : 0}</p>
+              </div>
+              <div className="stat-card">
+                <h4>Total Participants</h4>
+                <p className="stat-number">{Array.isArray(teams) ? teams.reduce((acc, team) => acc + (team.members ? team.members.length : 0), 0) : 0}</p>
+              </div>
+              <div className="stat-card">
+                <h4>Registrations Today</h4>
+                <p className="stat-number">{Array.isArray(teams) ? teams.filter(team => {
+                  if (!team.createdAt) return false;
+                  const today = new Date();
+                  const teamDate = team.createdAt.toDate ? team.createdAt.toDate() : new Date(team.createdAt);
+                  return teamDate.toDateString() === today.toDateString();
+                }).length : 0}</p>
+              </div>
+              <div className="stat-card">
+                <h4>Total Submissions</h4>
+                <p className="stat-number">{Array.isArray(teams) ? teams.filter(team => team.submissionLinks).length : 0}</p>
+              </div>
             </div>
           </section>
 
@@ -222,7 +396,7 @@ function Homepage() {
               playsInline
               onClick={handleVideoClick}
               onEnded={handleVideoEnded}
-              style={{ cursor: isPlaying ? 'default' : 'pointer' }}
+              style={{ cursor: 'pointer' }}
             >
               <source src="/video1.mp4" type="video/mp4" />
               <source src="/your-video.webm" type="video/webm" />

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, getUserData, isAdminLoggedIn, getAdminSession } from '../services/firebase';
+import { onAuthStateChange, getUserData, isAdminLoggedIn, getAdminSession, checkLoginPersistence, setupSessionManagement } from '../services/firebase';
 
 const AuthContext = createContext();
 
@@ -28,24 +28,45 @@ export const AuthProvider = ({ children }) => {
     checkAdminSession();
     const adminInterval = setInterval(checkAdminSession, 5000); // Check every 5 seconds
 
-    const unsubscribe = onAuthStateChanged(async (user) => {
-      if (user) {
-        setCurrentUser(user);
-        // Fetch additional user data from Firestore
-        const result = await getUserData(user.uid);
-        if (result.success) {
-          setUserData(result.data);
+    // Setup session management for handling browser close/refresh
+    const cleanupSessionManagement = setupSessionManagement();
+
+    // Check if user should stay logged in based on remember me setting
+    const initializeAuth = async () => {
+      await checkLoginPersistence();
+      
+      const unsubscribe = onAuthStateChange(async (user) => {
+        if (user && user.emailVerified) {
+          // Only set user data if email is verified
+          setCurrentUser(user);
+          // Fetch additional user data from Firestore
+          const result = await getUserData(user.uid);
+          if (result.success) {
+            setUserData(result.data);
+          }
+        } else {
+          // If user is not verified or no user, clear state
+          setCurrentUser(null);
+          setUserData(null);
+          // Clear remember login flag when user logs out
+          localStorage.removeItem('rememberLogin');
+          sessionStorage.removeItem('loginSession');
         }
-      } else {
-        setCurrentUser(null);
-        setUserData(null);
-      }
-      setLoading(false);
+        setLoading(false);
+      });
+
+      return unsubscribe;
+    };
+
+    let unsubscribe;
+    initializeAuth().then((unsub) => {
+      unsubscribe = unsub;
     });
 
     return () => {
-      unsubscribe();
+      if (unsubscribe) unsubscribe();
       clearInterval(adminInterval);
+      cleanupSessionManagement();
     };
   }, []);
 

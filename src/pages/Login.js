@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Login.css';
-import { loginUser } from '../services/firebase';
+import { loginUser, resetPassword, onAuthStateChange, getUserData, resendEmailVerification } from '../services/firebase';
 
 const Login = ({ onLogin }) => {
   const [formData, setFormData] = useState({
@@ -10,6 +10,11 @@ const Login = ({ onLogin }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   // Auto-hide toast after 3 seconds
   useEffect(() => {
@@ -21,8 +26,102 @@ const Login = ({ onLogin }) => {
     }
   }, [toast.show]);
 
+  // Check for persistent login on component mount
+  useEffect(() => {
+    // Set up Firebase auth state observer to check for existing session
+    const unsubscribe = onAuthStateChange(async (user) => {
+      if (!hasCheckedAuth) {
+        setHasCheckedAuth(true);
+        
+        if (user && user.emailVerified) {
+          // Only auto-login if user is verified
+          try {
+            const result = await getUserData(user.uid);
+            if (result.success && result.data) {
+              // Auto-login the user
+              onLogin(result.data);
+            }
+          } catch (error) {
+            console.error('Error getting user data:', error);
+          }
+        }
+        // If user is not verified, don't auto-login, let them see the login form
+      }
+    });
+
+    return () => unsubscribe();
+  }, [onLogin, hasCheckedAuth]);
+
   const showToast = (message, type = 'error') => {
     setToast({ show: true, message, type });
+  };
+
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+    
+    if (!resetEmail) {
+      showToast('Please enter your email address');
+      return;
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(resetEmail)) {
+      showToast('Please enter a valid email address');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const result = await resetPassword(resetEmail);
+      
+      if (result.success) {
+        showToast(result.message, 'success');
+        setShowResetModal(false);
+        setResetEmail('');
+      } else {
+        showToast(result.message);
+      }
+    } catch (error) {
+      showToast('Failed to send password reset email. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!verificationEmail || !formData.password) {
+      showToast('Please enter your credentials to resend verification email');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const result = await resendEmailVerification(verificationEmail, formData.password);
+      
+      if (result.success) {
+        showToast(result.message, 'success');
+        // Don't close the modal immediately, let user check email
+      } else {
+        showToast(result.message);
+      }
+    } catch (error) {
+      showToast('Failed to resend verification email. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerificationModalClose = () => {
+    setShowVerificationModal(false);
+    setVerificationEmail('');
+    // Reset form data when closing verification modal
+    setFormData({
+      emailOrTeam: '',
+      password: '',
+      rememberMe: false
+    });
   };
 
   const handleInputChange = (e) => {
@@ -62,21 +161,30 @@ const Login = ({ onLogin }) => {
 
     try {
       // Login with Firebase
-      const result = await loginUser(formData.emailOrTeam, formData.password);
+      const result = await loginUser(formData.emailOrTeam, formData.password, formData.rememberMe);
 
       if (result.success) {
-        // Save to localStorage for persistence if remember me is checked
+        // Handle remember me functionality
         if (formData.rememberMe) {
-          localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('userData', JSON.stringify(result.userData));
+          localStorage.setItem('rememberLogin', 'true');
+        } else {
+          localStorage.removeItem('rememberLogin');
         }
         
         showToast(result.message, 'success');
         
-        setTimeout(() => {
-          onLogin(result.userData);
-        }, 1000);
+        // Only navigate if there's no verification modal shown
+        if (!showVerificationModal) {
+          setTimeout(() => {
+            onLogin(result.userData);
+          }, 1000);
+        }
       } else {
+        // Check if it's an email verification error
+        if (result.needsVerification) {
+          setVerificationEmail(result.email);
+          setShowVerificationModal(true);
+        }
         showToast(result.message, 'error');
       }
     } catch (error) {
@@ -167,7 +275,7 @@ const Login = ({ onLogin }) => {
             
             <form onSubmit={handleSubmit} className="login-form">
               <div className="form-group">
-                <label htmlFor="emailOrTeam">Email Address or Team Name *</label>
+                <label htmlFor="emailOrTeam">Email Address*</label>
                 <input
                   type="text"
                   id="emailOrTeam"
@@ -175,9 +283,9 @@ const Login = ({ onLogin }) => {
                   value={formData.emailOrTeam}
                   onChange={handleInputChange}
                   required
-                  placeholder="Enter your email or team name"
+                  placeholder="Enter your email"
                 />
-                <small className="input-hint">You can use either your registered email or team name</small>
+                <small className="input-hint">You can use either your registered email</small>
               </div>
 
               <div className="form-group">
@@ -203,7 +311,16 @@ const Login = ({ onLogin }) => {
                   />
                   Remember me
                 </label>
-                <a href="#forgot" className="forgot-link">Forgot password?</a>
+                <a 
+                  href="#forgot" 
+                  className="forgot-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowResetModal(true);
+                  }}
+                >
+                  Forgot password?
+                </a>
               </div>
 
               <button
@@ -216,18 +333,114 @@ const Login = ({ onLogin }) => {
             </form>
             
             <div className="login-footer">
-              <p>Don't have an account? <a href="#register">Register for SparkCU</a></p>
+              <p>Don't have an account? <a href="/register">Register for SparkCU</a></p>
             </div>
 
-            <div className="demo-credentials">
-              <h4>Demo Credentials:</h4>
-              <p><strong>Email:</strong> demo@sparkcu.edu</p>
-              <p><strong>Team:</strong> TeamSpark</p>
-              <p><strong>Password:</strong> demo123</p>
-            </div>
           </div>
         </div>
       </div>
+
+      {/* Password Reset Modal */}
+      {showResetModal && (
+        <div className="modal-overlay" onClick={() => setShowResetModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Reset Password</h3>
+              <button 
+                className="modal-close"
+                onClick={() => setShowResetModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <form onSubmit={handlePasswordReset} className="reset-form">
+              <div className="form-group">
+                <label htmlFor="resetEmail">Email Address</label>
+                <input
+                  type="email"
+                  id="resetEmail"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  placeholder="Enter your registered email"
+                  required
+                />
+                <small className="input-hint">
+                  We'll send you a link to reset your password
+                </small>
+              </div>
+              
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="cancel-button"
+                  onClick={() => setShowResetModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="nav-button submit-button"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Sending...' : 'Send Reset Email'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Email Verification Modal */}
+      {showVerificationModal && (
+        <div className="modal-overlay" onClick={handleVerificationModalClose}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Email Verification Required</h3>
+              <button 
+                className="modal-close"
+                onClick={handleVerificationModalClose}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="verification-content">
+              <div className="verification-icon">
+                📧
+              </div>
+              <p>
+                Your email address <strong>{verificationEmail}</strong> needs to be verified 
+                before you can access your dashboard.
+              </p>
+              <p>
+                Please check your inbox for the verification email and click the verification link.
+              </p>
+              <p>
+                If you haven't received the email, you can request a new one below.
+              </p>
+              
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="cancel-button"
+                  onClick={handleVerificationModalClose}
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="nav-button submit-button"
+                  onClick={handleResendVerification}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Sending...' : 'Resend Verification Email'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

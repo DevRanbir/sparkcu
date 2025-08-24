@@ -10,6 +10,7 @@ const Register = () => {
     leaderUid: '',
     leaderMobile: '',
     teamName: '',
+    topicName: '',
     academicYear: '2nd',
     members: [
       { name: '', uid: '', mobile: '' }, // Member 1
@@ -76,8 +77,8 @@ const Register = () => {
         return true;
       
       case 2:
-        if (!formData.teamName) {
-          showToast('Please enter a team name.');
+        if (!formData.teamName || !formData.topicName) {
+          showToast('Please enter both team name and topic name.');
           return false;
         }
         return true;
@@ -175,6 +176,7 @@ const Register = () => {
         leaderUid: formData.leaderUid,
         leaderMobile: formData.leaderMobile,
         teamName: formData.teamName,
+        topicName: formData.topicName,
         academicYear: formData.academicYear,
         members: formData.members.filter(member => member.name.trim() !== '') // Only include members with names
       };
@@ -203,6 +205,7 @@ const Register = () => {
       leaderUid: '',
       leaderMobile: '',
       teamName: '',
+      topicName: '',
       academicYear: '2nd',
       members: [
         { name: '', uid: '', mobile: '' },
@@ -276,7 +279,7 @@ const Register = () => {
           name="leaderUid"
           value={formData.leaderUid}
           onChange={handleInputChange}
-          placeholder="e.g., 2021CS001"
+          placeholder="e.g., 24BCS00000"
           required
         />
       </div>
@@ -299,7 +302,7 @@ const Register = () => {
   const renderStep2 = () => (
     <div className="step-content">
       <h3>Team Details</h3>
-      <p className="step-description">Choose your team name and academic year</p>
+      <p className="step-description">Choose your team name, topic, and academic year</p>
       
       <div className="form-group">
         <label htmlFor="teamName">Team Name *</label>
@@ -315,7 +318,20 @@ const Register = () => {
       </div>
 
       <div className="form-group">
-        <label htmlFor="academicYear">Academic Year *</label>
+        <label htmlFor="topicName">Topic Name *</label>
+        <input
+          type="text"
+          id="topicName"
+          name="topicName"
+          value={formData.topicName}
+          onChange={handleInputChange}
+          placeholder="Enter your topic name"
+          required
+        />
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="academicYear">Academic Year of leader*</label>
         <select
           id="academicYear"
           name="academicYear"
@@ -323,8 +339,8 @@ const Register = () => {
           onChange={handleInputChange}
           required
         >
+          <option value="1st">1st Year</option>
           <option value="2nd">2nd Year</option>
-          <option value="3rd">3rd Year</option>
         </select>
       </div>
     </div>
@@ -434,7 +450,7 @@ const Register = () => {
       <h3>Registration Complete!</h3>
       <p className="success-description">
         Your team "{formData.teamName}" has been successfully registered for SparkCU.
-        Please check your email at {formData.email} for further instructions.
+        Please check your email at {formData.email} for further instructions.<br />Check Junk Folder if not received else contact support.
       </p>
       
       <div className="team-summary">

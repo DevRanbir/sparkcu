@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './Dashboard.css';
 import { useAuth } from '../contexts/AuthContext';
-import { getCountdownData } from '../services/firebase';
+import { 
+  getCountdownData, 
+  getAnnouncements, 
+  updateTeamSubmission, 
+  getTeamSubmission 
+} from '../services/firebase';
 
 const Dashboard = () => {
   const { currentUser, userData, loading } = useAuth();
@@ -18,6 +23,9 @@ const Dashboard = () => {
     { type: 'github', url: '', label: 'GitHub Repository' },
     { type: 'other', url: '', label: 'Other Link' }
   ]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [isSubmissionLoading, setIsSubmissionLoading] = useState(false);
+  const [submissionSaved, setSubmissionSaved] = useState(false);
 
   // Event date - using useMemo to prevent recreation on every render
   const eventDate = useMemo(() => {
@@ -37,8 +45,43 @@ const Dashboard = () => {
       }
     };
 
+    const fetchAnnouncementsData = async () => {
+      try {
+        const result = await getAnnouncements();
+        if (result.success) {
+          setAnnouncements(result.announcements);
+        }
+      } catch (error) {
+        console.error('Error fetching announcements:', error);
+      }
+    };
+
+    const fetchSubmissionData = async () => {
+      if (currentUser?.uid) {
+        try {
+          const result = await getTeamSubmission(currentUser.uid);
+          if (result.success && result.submissionLinks) {
+            const submission = result.submissionLinks;
+            setPresentationLink(submission.presentationLink || '');
+            
+            // Update additional links with saved data
+            setAdditionalLinks([
+              { type: 'youtube', url: submission.youtubeLink || '', label: 'YouTube Video' },
+              { type: 'github', url: submission.githubLink || '', label: 'GitHub Repository' },
+              { type: 'other', url: submission.otherLink || '', label: 'Other Link' }
+            ]);
+            setSubmissionSaved(true);
+          }
+        } catch (error) {
+          console.error('Error fetching submission data:', error);
+        }
+      }
+    };
+
     fetchCountdownConfig();
-  }, []);
+    fetchAnnouncementsData();
+    fetchSubmissionData();
+  }, [currentUser]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -76,7 +119,6 @@ const Dashboard = () => {
   // Use userData from Firebase auth context or fallback to default
   const userInfo = userData || {
     leaderName: currentUser?.displayName || "Team Leader",
-    email: currentUser?.email || "team@example.com",
     teamName: "Your Team",
     academicYear: "2nd",
     members: [
@@ -84,42 +126,78 @@ const Dashboard = () => {
     ]
   };
 
+  // Get the leader's email from userData if available, otherwise from currentUser
+  const leaderEmail = userData?.leaderEmail || currentUser?.email || "Not provided";
+
   const handleLinkChange = (index, value) => {
     const updatedLinks = [...additionalLinks];
     updatedLinks[index].url = value;
     setAdditionalLinks(updatedLinks);
   };
 
-  const handleSaveLinks = () => {
-    // Here you would typically save to backend
-    console.log('Presentation Link:', presentationLink);
-    console.log('Additional Links:', additionalLinks);
-    alert('Links saved successfully!');
+  const handleSaveLinks = async () => {
+    if (!currentUser?.uid) {
+      alert('User not authenticated');
+      return;
+    }
+
+    if (!presentationLink.trim()) {
+      alert('Presentation link is required');
+      return;
+    }
+
+    setIsSubmissionLoading(true);
+
+    try {
+      const submissionData = {
+        presentationLink: presentationLink.trim(),
+        youtubeLink: additionalLinks[0].url.trim(),
+        githubLink: additionalLinks[1].url.trim(),
+        otherLink: additionalLinks[2].url.trim()
+      };
+
+      const result = await updateTeamSubmission(currentUser.uid, submissionData);
+      
+      if (result.success) {
+        setSubmissionSaved(true);
+        alert('Links saved successfully!');
+      } else {
+        alert(result.message || 'Error saving links');
+      }
+    } catch (error) {
+      console.error('Error saving submission:', error);
+      alert('Error saving links. Please try again.');
+    } finally {
+      setIsSubmissionLoading(false);
+    }
   };
 
-  const announcements = [
-    {
-      id: 1,
-      title: "Welcome to SparkCU Ideathon!",
-      message: "We're excited to have you participate in this year's ideathon. Check your email for important updates.",
-      timestamp: "2 hours ago",
-      type: "info"
-    },
-    {
-      id: 2,
-      title: "Pre-event Webinar",
-      message: "Join us for a pre-event webinar on December 10th at 7 PM to learn about the competition format.",
-      timestamp: "1 day ago",
-      type: "event"
-    },
-    {
-      id: 3,
-      title: "Submission Guidelines Updated",
-      message: "Please ensure your presentation links are submitted through the dashboard before the deadline.",
-      timestamp: "3 days ago",
-      type: "update"
+  const openLink = (url) => {
+    if (url && url.trim()) {
+      window.open(url, '_blank');
     }
-  ];
+  };
+
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const now = new Date();
+    const diffInHours = (now - date) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor(diffInHours * 60);
+      return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
+    } else if (diffInHours < 24) {
+      const hours = Math.floor(diffInHours);
+      return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+    } else if (diffInHours < 168) { // 7 days
+      const days = Math.floor(diffInHours / 24);
+      return `${days} day${days !== 1 ? 's' : ''} ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -171,7 +249,7 @@ const Dashboard = () => {
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Email:</span>
-                    <span className="detail-value">{userInfo.email}</span>
+                    <span className="detail-value">{leaderEmail}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Academic Year:</span>
@@ -233,21 +311,46 @@ const Dashboard = () => {
             <div className="card">
               <div className="card-header">
                 <h2 className="card-title">Project Submission</h2>
-                <p className="card-subtitle">Submit your project links and resources</p>
+                {submissionSaved && (
+                  <div className="submission-status">
+                    <span className="status-badge saved">✓ Saved</span>
+                  </div>
+                )}
               </div>
               <div className="submission-form">
                 <div className="form-group">
                   <label htmlFor="presentationLink">
                     <span className="required">*</span> Google Drive Presentation Link
                   </label>
-                  <input
-                    type="url"
-                    id="presentationLink"
-                    value={presentationLink}
-                    onChange={(e) => setPresentationLink(e.target.value)}
-                    placeholder="https://drive.google.com/file/d/your-presentation-id/view"
-                    required
-                  />
+                  <div className="input-with-button">
+                    <input
+                      type="url"
+                      id="presentationLink"
+                      value={presentationLink}
+                      onChange={(e) => {
+                        setPresentationLink(e.target.value);
+                        if (submissionSaved && e.target.value !== presentationLink) {
+                          setSubmissionSaved(false);
+                        }
+                      }}
+                      placeholder="https://drive.google.com/file/d/your-presentation-id/view"
+                      required
+                    />
+                    {presentationLink && (
+                      <button 
+                        type="button" 
+                        className="preview-button"
+                        onClick={() => openLink(presentationLink)}
+                        title="Open link in new tab"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                          <polyline points="15,3 21,3 21,9"/>
+                          <line x1="10" y1="14" x2="21" y2="3"/>
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                   <small className="form-hint">
                     Make sure your presentation is set to "Anyone with the link can view"
                   </small>
@@ -260,25 +363,66 @@ const Dashboard = () => {
                       <label htmlFor={`link-${index}`}>
                         {link.label}
                       </label>
-                      <input
-                        type="url"
-                        id={`link-${index}`}
-                        value={link.url}
-                        onChange={(e) => handleLinkChange(index, e.target.value)}
-                        placeholder={`Enter your ${link.label.toLowerCase()} URL`}
-                      />
+                      <div className="input-with-button">
+                        <input
+                          type="url"
+                          id={`link-${index}`}
+                          value={link.url}
+                          onChange={(e) => {
+                            handleLinkChange(index, e.target.value);
+                            if (submissionSaved) {
+                              setSubmissionSaved(false);
+                            }
+                          }}
+                          placeholder={`Enter your ${link.label.toLowerCase()} URL`}
+                        />
+                        {link.url && (
+                          <button 
+                            type="button" 
+                            className="preview-button"
+                            onClick={() => openLink(link.url)}
+                            title="Open link in new tab"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                              <polyline points="15,3 21,3 21,9"/>
+                              <line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
 
-                <button className="save-button" onClick={handleSaveLinks}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                    <polyline points="17,21 17,13 7,13 7,21"/>
-                    <polyline points="7,3 7,8 15,8"/>
-                  </svg>
-                  Save Submission Links
+                <button 
+                  className={`save-button ${isSubmissionLoading ? 'loading' : ''} ${submissionSaved ? 'saved' : ''}`} 
+                  onClick={handleSaveLinks}
+                  disabled={isSubmissionLoading}
+                >
+                  {isSubmissionLoading ? (
+                    <>
+                      Saving...
+                    </>
+                  ) : submissionSaved ? (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="20,6 9,17 4,12"/>
+                      </svg>
+                      Already submitted 
+                    </>
+                  ) : (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17,21 17,13 7,13 7,21"/>
+                        <polyline points="7,3 7,8 15,8"/>
+                      </svg>
+                      Save Submission Links
+                    </>
+                  )}
                 </button>
+                <p className="card-subtitle">Click the above button to submit your project links and resources, <br /> if once submitted until deadline you can edit freely.</p>
               </div>
             </div>
           </div>
@@ -293,15 +437,23 @@ const Dashboard = () => {
                 <p className="card-subtitle">Latest updates and important information</p>
               </div>
               <div className="announcements-list">
-                {announcements.map((announcement) => (
-                  <div key={announcement.id} className={`announcement-card ${announcement.type}`}>
-                    <div className="announcement-header">
-                      <h3>{announcement.title}</h3>
-                      <span className="announcement-timestamp">{announcement.timestamp}</span>
+                {announcements.length > 0 ? (
+                  announcements.map((announcement) => (
+                    <div key={announcement.id} className={`announcement-card ${announcement.type}`}>
+                      <div className="announcement-header">
+                        <h3>{announcement.title}</h3>
+                        <span className="announcement-timestamp">
+                          {formatTimestamp(announcement.createdAt)}
+                        </span>
+                      </div>
+                      <p>{announcement.message}</p>
                     </div>
-                    <p>{announcement.message}</p>
+                  ))
+                ) : (
+                  <div className="no-announcements">
+                    <p>No announcements available at the moment.</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
