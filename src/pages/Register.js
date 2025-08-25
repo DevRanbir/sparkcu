@@ -219,222 +219,212 @@ const Register = () => {
     setToast({ show: false, message: '', type: '' });
   };
 
-  const renderStepIndicator = () => (
-    <div className="step-indicator">
-      {[1, 2, 3, 4, 5].map((step) => (
-        <div
-          key={step}
-          className={`step ${currentStep >= step ? 'active' : ''} ${currentStep === step ? 'current' : ''}`}
-          onClick={() => step < currentStep && goToStep(step)}
-        >
-          <div className="step-number">{step}</div>
-          <div className="step-label">
-            {step === 1 && 'Leader Info'}
-            {step === 2 && 'Team Details'}
-            {step === 3 && 'Members'}
-            {step === 4 && 'Password'}
-            {step === 5 && 'Complete'}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
   const renderStep1 = () => (
     <div className="step-content">
-      <h3>Team Leader Information</h3>
-      <p className="step-description">Enter your details as the team leader</p>
-      
-      <div className="form-group">
-        <label htmlFor="email">Email Address *</label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          value={formData.email}
-          onChange={handleInputChange}
-          placeholder="leader@university.edu"
-          required
-        />
-      </div>
+      <div className="register-form">
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="email">Email Address *</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              placeholder="leader@university.edu"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="leaderName">Full Name *</label>
+            <input
+              type="text"
+              id="leaderName"
+              name="leaderName"
+              value={formData.leaderName}
+              onChange={handleInputChange}
+              placeholder="Enter your full name"
+              required
+            />
+          </div>
+        </div>
 
-      <div className="form-group">
-        <label htmlFor="leaderName">Leader Full Name *</label>
-        <input
-          type="text"
-          id="leaderName"
-          name="leaderName"
-          value={formData.leaderName}
-          onChange={handleInputChange}
-          placeholder="Enter your full name"
-          required
-        />
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="leaderUid">Leader University ID *</label>
-        <input
-          type="text"
-          id="leaderUid"
-          name="leaderUid"
-          value={formData.leaderUid}
-          onChange={handleInputChange}
-          placeholder="e.g., 24BCS00000"
-          required
-        />
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="leaderMobile">Leader Mobile Number *</label>
-        <input
-          type="tel"
-          id="leaderMobile"
-          name="leaderMobile"
-          value={formData.leaderMobile}
-          onChange={handleInputChange}
-          placeholder="+91 9876543210"
-          required
-        />
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="leaderUid">University ID *</label>
+            <input
+              type="text"
+              id="leaderUid"
+              name="leaderUid"
+              value={formData.leaderUid}
+              onChange={handleInputChange}
+              placeholder="e.g., 24BCS00000"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="leaderMobile">Mobile Number *</label>
+            <input
+              type="tel"
+              id="leaderMobile"
+              name="leaderMobile"
+              value={formData.leaderMobile}
+              onChange={handleInputChange}
+              placeholder="+91 9876543210"
+              required
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
 
   const renderStep2 = () => (
     <div className="step-content">
-      <h3>Team Details</h3>
-      <p className="step-description">Choose your team name, topic, and academic year</p>
-      
-      <div className="form-group">
-        <label htmlFor="teamName">Team Name *</label>
-        <input
-          type="text"
-          id="teamName"
-          name="teamName"
-          value={formData.teamName}
-          onChange={handleInputChange}
-          placeholder="Enter your team name"
-          required
-        />
-      </div>
+      <div className="register-form">
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="teamName">Team Name *</label>
+            <input
+              type="text"
+              id="teamName"
+              name="teamName"
+              value={formData.teamName}
+              onChange={handleInputChange}
+              placeholder="Enter your team name"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="topicName">Topic Name *</label>
+            <input
+              type="text"
+              id="topicName"
+              name="topicName"
+              value={formData.topicName}
+              onChange={handleInputChange}
+              placeholder="Enter your topic name"
+              required
+            />
+          </div>
+        </div>
 
-      <div className="form-group">
-        <label htmlFor="topicName">Topic Name *</label>
-        <input
-          type="text"
-          id="topicName"
-          name="topicName"
-          value={formData.topicName}
-          onChange={handleInputChange}
-          placeholder="Enter your topic name"
-          required
-        />
-      </div>
-
-      <div className="form-group">
-        <label htmlFor="academicYear">Academic Year of leader*</label>
-        <select
-          id="academicYear"
-          name="academicYear"
-          value={formData.academicYear}
-          onChange={handleInputChange}
-          required
-        >
-          <option value="1st">1st Year</option>
-          <option value="2nd">2nd Year</option>
-        </select>
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="academicYear">Academic Year of Leader *</label>
+            <select
+              id="academicYear"
+              name="academicYear"
+              value={formData.academicYear}
+              onChange={handleInputChange}
+              required
+            >
+              <option value="1st">1st Year</option>
+              <option value="2nd">2nd Year</option>
+            </select>
+          </div>
+          <div className="form-group">
+            {/* Empty for layout balance */}
+          </div>
+        </div>
       </div>
     </div>
   );
 
   const renderStep3 = () => (
     <div className="step-content">
-      <h3>Team Members</h3>
-      <p className="step-description">Add 2-3 team members (minimum 2 required)</p>
-      
-      <div className="members-grid">
-        {formData.members.slice(0, 3).map((member, index) => (
-          <div key={index} className="member-card">
-            <h4>Member {index + 1}</h4>
-            
-            <div className="form-group">
-              <label>Full Name</label>
-              <input
-                type="text"
-                value={member.name}
-                onChange={(e) => handleMemberChange(index, 'name', e.target.value)}
-                placeholder="Enter member's full name"
-              />
-            </div>
+      <div className="members-section">
+        <div className="members-grid">
+          {formData.members.slice(0, 3).map((member, index) => (
+            <div key={index} className="member-card">
+              <h4>Member {index + 1}</h4>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Full Name</label>
+                  <input
+                    type="text"
+                    value={member.name}
+                    onChange={(e) => handleMemberChange(index, 'name', e.target.value)}
+                    placeholder="Enter member's full name"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>University ID</label>
+                  <input
+                    type="text"
+                    value={member.uid}
+                    onChange={(e) => handleMemberChange(index, 'uid', e.target.value)}
+                    placeholder="Enter university ID"
+                  />
+                </div>
+              </div>
 
-            <div className="form-group">
-              <label>University ID</label>
-              <input
-                type="text"
-                value={member.uid}
-                onChange={(e) => handleMemberChange(index, 'uid', e.target.value)}
-                placeholder="Enter university ID"
-              />
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Mobile Number</label>
+                  <input
+                    type="tel"
+                    value={member.mobile}
+                    onChange={(e) => handleMemberChange(index, 'mobile', e.target.value)}
+                    placeholder="10-digit mobile number"
+                    maxLength="10"
+                  />
+                </div>
+                <div className="form-group">
+                  {/* Empty for layout balance */}
+                </div>
+              </div>
             </div>
-
-            <div className="form-group">
-              <label>Mobile Number</label>
-              <input
-                type="tel"
-                value={member.mobile}
-                onChange={(e) => handleMemberChange(index, 'mobile', e.target.value)}
-                placeholder="10-digit mobile number"
-                maxLength="10"
-              />
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
 
   const renderStep4 = () => (
     <div className="step-content">
-      <h3>Create Password</h3>
-      <p className="step-description">Set up a secure password for your team login</p>
-      
-      <div className="form-group">
-        <label htmlFor="password">Password *</label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          value={formData.password}
-          onChange={handleInputChange}
-          placeholder="Enter a secure password (min 6 characters)"
-          required
-          minLength="6"
-        />
-      </div>
+      <div className="register-form">
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="password">Password *</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              placeholder="Enter a secure password (min 6 characters)"
+              required
+              minLength="6"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirm Password *</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              placeholder="Re-enter your password"
+              required
+              minLength="6"
+            />
+          </div>
+        </div>
 
-      <div className="form-group">
-        <label htmlFor="confirmPassword">Confirm Password *</label>
-        <input
-          type="password"
-          id="confirmPassword"
-          name="confirmPassword"
-          value={formData.confirmPassword}
-          onChange={handleInputChange}
-          placeholder="Re-enter your password"
-          required
-          minLength="6"
-        />
-      </div>
-
-      <div className="password-requirements">
-        <h4>Password Requirements:</h4>
-        <ul>
-          <li className={formData.password.length >= 6 ? 'valid' : ''}>
-            At least 6 characters long
-          </li>
-          <li className={formData.password === formData.confirmPassword && formData.password ? 'valid' : ''}>
-            Passwords match
-          </li>
-        </ul>
+        <div className="password-requirements">
+          <h4>Password Requirements:</h4>
+          <ul>
+            <li className={formData.password.length >= 6 ? 'valid' : ''}>
+              At least 6 characters long
+            </li>
+            <li className={formData.password === formData.confirmPassword && formData.password ? 'valid' : ''}>
+              Passwords match
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   );
@@ -462,6 +452,76 @@ const Register = () => {
     </div>
   );
 
+  // Step info content for left panel
+  const getStepInfo = () => {
+    switch (currentStep) {
+      case 1:
+        return {
+          indicator: "Step 1 of 4",
+          title: "Team Leader Information",
+          description: "Start by providing your details as the team leader. This information will be used for all communications.",
+          features: [
+            "Secure email verification",
+            "Team leader identification",
+            "Contact information setup"
+          ]
+        };
+      case 2:
+        return {
+          indicator: "Step 2 of 4",
+          title: "Team Details",
+          description: "Choose a unique team name and define your project topic. These will represent your team throughout the competition.",
+          features: [
+            "Unique team identity",
+            "Project topic selection",
+            "Academic year classification"
+          ]
+        };
+      case 3:
+        return {
+          indicator: "Step 3 of 4",
+          title: "Team Members",
+          description: "Add your team members (2-3 total). Each member will be part of your competitive team.",
+          features: [
+            "Minimum 2 members required",
+            "Maximum 3 members allowed",
+            "Complete member verification"
+          ]
+        };
+      case 4:
+        return {
+          indicator: "Step 4 of 4",
+          title: "Account Security",
+          description: "Create a secure password for your team account. This will be used to access your dashboard.",
+          features: [
+            "Secure password creation",
+            "Account protection",
+            "Team login credentials"
+          ]
+        };
+      case 5:
+        return {
+          indicator: "Registration Complete",
+          title: "Welcome to SparkCU!",
+          description: "Your registration is complete! Check your email for verification and next steps.",
+          features: [
+            "Email verification sent",
+            "Team successfully registered",
+            "Ready to compete"
+          ]
+        };
+      default:
+        return {
+          indicator: "Getting Started",
+          title: "Join SparkCU",
+          description: "Register your team for the ultimate coding competition.",
+          features: []
+        };
+    }
+  };
+
+  const stepInfo = getStepInfo();
+
   return (
     <div className="register-page">
       {/* Toast Notification */}
@@ -483,69 +543,106 @@ const Register = () => {
       )}
 
       <div className="register-container">
-        <div className="register-header">
-          <h1>Register for SparkCU</h1>
-          <p>Join the ultimate coding competition</p>
+        {/* Left Panel - Step Info */}
+        <div className="step-info-panel">
+          <div className="step-info-content">
+            <div className="current-step-indicator">{stepInfo.indicator}</div>
+            <h2 className="step-title">{stepInfo.title}</h2>
+            <p className="step-description">{stepInfo.description}</p>
+            {stepInfo.features.length > 0 && (
+              <ul className="step-features">
+                {stepInfo.features.map((feature, index) => (
+                  <li key={index}>{feature}</li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
-        {renderStepIndicator()}
+        {/* Right Panel - Form */}
+        <div className="form-panel">
+          <div className="register-header">
+            <h1>Register for SparkCU</h1>
+            <p>Join the ultimate coding competition</p>
+          </div>
 
-        <div className="form-container">
-          {currentStep === 1 && renderStep1()}
-          {currentStep === 2 && renderStep2()}
-          {currentStep === 3 && renderStep3()}
-          {currentStep === 4 && renderStep4()}
-          {currentStep === 5 && renderStep5()}
-
-          {currentStep < 5 && (
-            <div className="form-navigation">
-              {currentStep > 1 && (
-                <button
-                  type="button"
-                  className="nav-button prev-button"
-                  onClick={prevStep}
+          {/* Step Progress */}
+          <div className="step-progress">
+            <div className="progress-line"></div>
+            <div 
+              className="progress-line-active" 
+              style={{ width: `${(Math.min(currentStep - 1, 3) / 3) * 100}%` }}
+            ></div>
+            <div className="step-dots">
+              {[1, 2, 3, 4].map((step) => (
+                <div
+                  key={step}
+                  className={`step-dot ${currentStep >= step ? 'active' : ''} ${currentStep > step ? 'completed' : ''}`}
+                  onClick={() => step < currentStep && goToStep(step)}
                 >
-                  ← Previous
-                </button>
-              )}
-              
-              {currentStep < 4 && (
-                <button
-                  type="button"
-                  className="nav-button next-button"
-                  onClick={nextStep}
-                >
-                  Next →
-                </button>
-              )}
-              
-              {currentStep === 4 && (
-                <button
-                  type="button"
-                  className="nav-button submit-button"
-                  onClick={handleSubmit}
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Registering...' : 'Complete Registration'}
-                </button>
-              )}
+                  {currentStep > step ? '✓' : step}
+                </div>
+              ))}
             </div>
-          )}
+          </div>
 
-          {currentStep === 5 && (
-            <div className="final-actions">
-              <button
-                type="button"
-                className="nav-button"
-                onClick={resetForm}
-              >
-                Register Another Team
-              </button>
-              <a href="/login" className="login-link">
-                Go to Login
-              </a>
-            </div>
-          )}
+          <div className="form-container">
+            {currentStep === 1 && renderStep1()}
+            {currentStep === 2 && renderStep2()}
+            {currentStep === 3 && renderStep3()}
+            {currentStep === 4 && renderStep4()}
+            {currentStep === 5 && renderStep5()}
+
+            {currentStep < 5 && (
+              <div className="form-navigation">
+                {currentStep > 1 && (
+                  <button
+                    type="button"
+                    className="nav-button prev-button"
+                    onClick={prevStep}
+                  >
+                    ← Previous
+                  </button>
+                )}
+                
+                {currentStep < 4 && (
+                  <button
+                    type="button"
+                    className="nav-button next-button"
+                    onClick={nextStep}
+                  >
+                    Next →
+                  </button>
+                )}
+                
+                {currentStep === 4 && (
+                  <button
+                    type="button"
+                    className="nav-button submit-button"
+                    onClick={handleSubmit}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Registering...' : 'Complete Registration'}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {currentStep === 5 && (
+              <div className="final-actions">
+                <button
+                  type="button"
+                  className="nav-button"
+                  onClick={resetForm}
+                >
+                  Register Another Team
+                </button>
+                <a href="/login" className="login-link">
+                  Go to Login
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

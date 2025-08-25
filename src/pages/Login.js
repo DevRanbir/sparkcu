@@ -16,6 +16,29 @@ const Login = ({ onLogin }) => {
   const [verificationEmail, setVerificationEmail] = useState('');
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
+  // Prevent body scroll when modals are open
+  useEffect(() => {
+    if (showResetModal || showVerificationModal) {
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+      // Prevent scroll on iOS Safari
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      // Restore body scroll
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+
+    // Cleanup function
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
+  }, [showResetModal, showVerificationModal]);
+
   // Auto-hide toast after 3 seconds
   useEffect(() => {
     if (toast.show) {
@@ -34,16 +57,39 @@ const Login = ({ onLogin }) => {
         setHasCheckedAuth(true);
         
         if (user && user.emailVerified) {
-          // Only auto-login if user is verified
-          try {
-            const result = await getUserData(user.uid);
-            if (result.success && result.data) {
-              // Auto-login the user
-              onLogin(result.data);
+          // Check if remember me was enabled or if this is a valid session
+          const isRemembered = localStorage.getItem('rememberLogin') === 'true';
+          const loginSession = sessionStorage.getItem('loginSession');
+          
+          // Only auto-login if remember me was checked or there's an active session
+          if (isRemembered || loginSession) {
+            try {
+              // Force refresh the user token to ensure email verification is current
+              await user.reload();
+              
+              // Double-check email verification after reload
+              if (user.emailVerified) {
+                const result = await getUserData(user.uid);
+                if (result.success && result.data) {
+                  // Auto-login the user
+                  onLogin(result.data);
+                }
+              } else {
+                // User is no longer verified, clear any stored sessions
+                localStorage.removeItem('rememberLogin');
+                sessionStorage.removeItem('loginSession');
+              }
+            } catch (error) {
+              console.error('Error getting user data:', error);
+              // Clear sessions on error
+              localStorage.removeItem('rememberLogin');
+              sessionStorage.removeItem('loginSession');
             }
-          } catch (error) {
-            console.error('Error getting user data:', error);
           }
+        } else if (user && !user.emailVerified) {
+          // User exists but not verified, clear any stored sessions
+          localStorage.removeItem('rememberLogin');
+          sessionStorage.removeItem('loginSession');
         }
         // If user is not verified, don't auto-login, let them see the login form
       }
@@ -83,7 +129,8 @@ const Login = ({ onLogin }) => {
         showToast(result.message);
       }
     } catch (error) {
-      showToast('Failed to send password reset email. Please try again.');
+      console.error('Password reset error:', error);
+      showToast('Failed to send password reset email. Please check your email address and try again.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +154,8 @@ const Login = ({ onLogin }) => {
         showToast(result.message);
       }
     } catch (error) {
-      showToast('Failed to resend verification email. Please try again.');
+      console.error('Resend verification error:', error);
+      showToast('Failed to resend verification email. Please check your credentials and try again.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -122,6 +170,8 @@ const Login = ({ onLogin }) => {
       password: '',
       rememberMe: false
     });
+    // Clear any stored sessions that might cause auto-login issues
+    sessionStorage.removeItem('loginSession');
   };
 
   const handleInputChange = (e) => {
@@ -160,6 +210,9 @@ const Login = ({ onLogin }) => {
     }
 
     try {
+      // Clear any previous sessions before attempting login
+      sessionStorage.removeItem('loginSession');
+      
       // Login with Firebase
       const result = await loginUser(formData.emailOrTeam, formData.password, formData.rememberMe);
 
@@ -169,6 +222,8 @@ const Login = ({ onLogin }) => {
           localStorage.setItem('rememberLogin', 'true');
         } else {
           localStorage.removeItem('rememberLogin');
+          // Set session timestamp for this login session
+          sessionStorage.setItem('loginSession', Date.now().toString());
         }
         
         showToast(result.message, 'success');
@@ -188,8 +243,25 @@ const Login = ({ onLogin }) => {
         showToast(result.message, 'error');
       }
     } catch (error) {
-      console.error('Login error:', error);
-      showToast('An unexpected error occurred. Please try again.', 'error');
+      console.error('Login error details:', {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
+      
+      // Provide more specific error message based on error type
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      
+      if (error.message && error.message.includes('network')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (error.message && error.message.includes('timeout')) {
+        errorMessage = 'Request timed out. Please try again.';
+      } else if (error.code) {
+        errorMessage = `Error (${error.code}): ${error.message}`;
+      }
+      
+      showToast(errorMessage, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -285,7 +357,7 @@ const Login = ({ onLogin }) => {
                   required
                   placeholder="Enter your email"
                 />
-                <small className="input-hint">You can use either your registered email</small>
+                <small className="input-hint">You can only use your registered email.</small>
               </div>
 
               <div className="form-group">
@@ -393,13 +465,27 @@ const Login = ({ onLogin }) => {
 
       {/* Email Verification Modal */}
       {showVerificationModal && (
-        <div className="modal-overlay" onClick={handleVerificationModalClose}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div 
+          className="modal-overlay" 
+          onClick={handleVerificationModalClose}
+          onTouchStart={(e) => {
+            // Prevent iOS Safari from bouncing when scrolling modal background
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
+            }
+          }}
+        >
+          <div 
+            className="modal-content" 
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h3>Email Verification Required</h3>
               <button 
                 className="modal-close"
                 onClick={handleVerificationModalClose}
+                onTouchStart={(e) => e.stopPropagation()}
               >
                 ×
               </button>
@@ -425,6 +511,7 @@ const Login = ({ onLogin }) => {
                   type="button"
                   className="cancel-button"
                   onClick={handleVerificationModalClose}
+                  onTouchStart={(e) => e.stopPropagation()}
                 >
                   Close
                 </button>
@@ -432,6 +519,7 @@ const Login = ({ onLogin }) => {
                   type="button"
                   className="nav-button submit-button"
                   onClick={handleResendVerification}
+                  onTouchStart={(e) => e.stopPropagation()}
                   disabled={isLoading}
                 >
                   {isLoading ? 'Sending...' : 'Resend Verification Email'}

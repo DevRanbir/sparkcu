@@ -113,11 +113,19 @@ export const registerUser = async (email, password, userData) => {
       message: 'Registration successful! Please check your email for verification.'
     };
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Registration error details:', {
+      code: error.code,
+      message: error.message,
+      name: error.name
+    });
+    
+    // Handle specific error cases that might not have error.code
+    let errorCode = error.code || 'unknown-error';
+    
     return {
       success: false,
-      error: error.code,
-      message: getErrorMessage(error.code)
+      error: errorCode,
+      message: getErrorMessage(errorCode)
     };
   }
 };
@@ -131,10 +139,16 @@ export const loginUser = async (email, password, rememberMe = false) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Check if email is verified
+    // Force reload user to get current verification status
+    await user.reload();
+
+    // Check if email is verified after reload
     if (!user.emailVerified) {
       // Sign out the user since they're not verified
       await signOut(auth);
+      // Clear any stored sessions
+      localStorage.removeItem('rememberLogin');
+      sessionStorage.removeItem('loginSession');
       return {
         success: false,
         error: 'email-not-verified',
@@ -177,11 +191,32 @@ export const loginUser = async (email, password, rememberMe = false) => {
       message: 'Login successful!'
     };
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('Login error details:', {
+      code: error.code,
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+    
+    // Handle specific error cases that might not have error.code
+    let errorCode = error.code;
+    let errorMessage = error.message;
+    
+    if (!errorCode) {
+      // If there's no error code, try to determine from the message
+      if (errorMessage && errorMessage.includes('network')) {
+        errorCode = 'auth/network-request-failed';
+      } else if (errorMessage && errorMessage.includes('timeout')) {
+        errorCode = 'auth/timeout';
+      } else {
+        errorCode = 'unknown-error';
+      }
+    }
+    
     return {
       success: false,
-      error: error.code,
-      message: getErrorMessage(error.code)
+      error: errorCode,
+      message: getErrorMessage(errorCode)
     };
   }
 };
@@ -195,11 +230,18 @@ export const resetPassword = async (email) => {
       message: 'Password reset email sent! Check your inbox.'
     };
   } catch (error) {
-    console.error('Password reset error:', error);
+    console.error('Password reset error details:', {
+      code: error.code,
+      message: error.message,
+      name: error.name
+    });
+    
+    let errorCode = error.code || 'unknown-error';
+    
     return {
       success: false,
-      error: error.code,
-      message: getErrorMessage(error.code)
+      error: errorCode,
+      message: getErrorMessage(errorCode)
     };
   }
 };
@@ -227,11 +269,18 @@ export const resendEmailVerification = async (email, password) => {
       message: 'Verification email sent! Please check your inbox and verify your email before logging in.'
     };
   } catch (error) {
-    console.error('Resend verification error:', error);
+    console.error('Resend verification error details:', {
+      code: error.code,
+      message: error.message,
+      name: error.name
+    });
+    
+    let errorCode = error.code || 'unknown-error';
+    
     return {
       success: false,
-      error: error.code,
-      message: getErrorMessage(error.code)
+      error: errorCode,
+      message: getErrorMessage(errorCode)
     };
   }
 };
@@ -340,6 +389,8 @@ export const getUserData = async (uid) => {
 
 // Helper function to get user-friendly error messages
 const getErrorMessage = (errorCode) => {
+  console.log('Error code received:', errorCode); // Debug logging
+  
   switch (errorCode) {
     case 'auth/email-already-in-use':
       return 'This email is already registered. Please use a different email or try logging in.';
@@ -351,14 +402,45 @@ const getErrorMessage = (errorCode) => {
       return 'No account found with this email. Please check your email or register.';
     case 'auth/wrong-password':
       return 'Incorrect password. Please try again.';
+    case 'auth/invalid-credential':
+      return 'Invalid email or password. Please check your credentials and try again.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled. Please contact support.';
     case 'auth/too-many-requests':
-      return 'Too many failed attempts. Please try again later.';
+      return 'Too many failed attempts. Please try again later or reset your password.';
     case 'auth/network-request-failed':
-      return 'Network error. Please check your internet connection.';
+      return 'Network error. Please check your internet connection and try again.';
+    case 'auth/timeout':
+      return 'Request timed out. Please check your connection and try again.';
+    case 'auth/popup-closed-by-user':
+      return 'Authentication was cancelled. Please try again.';
+    case 'auth/cancelled-popup-request':
+      return 'Authentication request was cancelled. Please try again.';
+    case 'auth/internal-error':
+      return 'An internal error occurred. Please try again later.';
+    case 'auth/invalid-api-key':
+      return 'Configuration error. Please contact support.';
+    case 'auth/app-not-authorized':
+      return 'Application not authorized. Please contact support.';
+    case 'auth/operation-not-allowed':
+      return 'This operation is not allowed. Please contact support.';
     case 'email-not-verified':
       return 'Please verify your email address before logging in. Check your inbox for the verification link.';
+    case 'permission-denied':
+      return 'Access denied. Please check your permissions.';
+    case 'unavailable':
+      return 'Service temporarily unavailable. Please try again later.';
+    case 'not-found':
+      return 'Requested resource not found.';
+    case 'unknown-error':
+      return 'An unexpected error occurred. Please try again or contact support.';
+    case null:
+    case undefined:
+    case '':
+      return 'An unknown error occurred. Please try again or contact support.';
     default:
-      return 'An error occurred. Please try again.';
+      console.warn('Unhandled error code:', errorCode); // Log unhandled errors
+      return `Authentication failed${errorCode ? ` (${errorCode})` : ''}. Please try again or contact support if the problem persists.`;
   }
 };
 

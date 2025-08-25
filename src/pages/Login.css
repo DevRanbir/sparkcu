@@ -28,6 +28,18 @@
   animation: slideInRight 0.3s ease-out;
 }
 
+/* Mobile Toast positioning */
+@media (max-width: 480px) {
+  .toast {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    min-width: auto;
+    max-width: none;
+    width: calc(100% - 20px);
+  }
+}
+
 .toast.error {
   background: rgba(248, 215, 218, 0.95);
   border-color: rgba(245, 198, 203, 0.8);
@@ -789,6 +801,12 @@
   z-index: 1000;
   backdrop-filter: blur(4px);
   animation: fadeIn 0.3s ease-out;
+  padding: 1rem;
+  /* Prevent scroll on background */
+  overflow: hidden;
+  /* Prevent iOS Safari rubber band effect */
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-content {
@@ -796,13 +814,21 @@
   border-radius: 16px;
   padding: 2rem;
   max-width: 400px;
-  width: 90%;
-  max-height: 90vh;
+  width: 100%;
+  max-height: calc(100vh - 2rem);
   overflow-y: auto;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(12px);
   animation: slideInUp 0.3s ease-out;
+  /* Improve mobile scrolling */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent modal from being too close to screen edges */
+  margin: 1rem;
+  /* Prevent iOS Safari bounce */
+  overscroll-behavior: contain;
+  /* Ensure proper touch handling */
+  touch-action: pan-y;
 }
 
 .modal-header {
@@ -929,23 +955,87 @@
 
 /* Mobile Modal Responsive */
 @media (max-width: 480px) {
+  .modal-overlay {
+    padding: 0.5rem;
+    align-items: flex-start;
+    padding-top: 2rem;
+  }
+  
   .modal-content {
     padding: 1.5rem;
-    margin: 1rem;
+    margin: 0;
+    max-height: calc(100vh - 4rem);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .modal-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+  }
+  
+  .modal-header h3 {
+    font-size: 1.1rem;
   }
   
   .modal-actions {
     flex-direction: column;
     gap: 0.75rem;
+    margin-top: 1.5rem;
   }
   
   .cancel-button,
   .modal-actions .nav-button {
     width: 100%;
     text-align: center;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
   }
 
   .verification-icon {
     font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .verification-content p {
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .reset-form .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .reset-form .input-hint {
+    font-size: 0.75rem;
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 360px) {
+  .modal-content {
+    padding: 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .modal-header h3 {
+    font-size: 1rem;
+  }
+  
+  .verification-icon {
+    font-size: 2rem;
+  }
+  
+  .verification-content p {
+    font-size: 0.85rem;
+  }
+}
+
+/* Fix iOS Safari viewport issues */
+@supports (-webkit-touch-callout: none) {
+  .modal-overlay {
+    /* Fix for iOS Safari viewport height */
+    min-height: -webkit-fill-available;
   }
 }
