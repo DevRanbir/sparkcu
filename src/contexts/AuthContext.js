@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChange, getUserTeamData, isAdminLoggedIn, getAdminSession, checkLoginPersistence, setupSessionManagement } from '../services/firebase';
+import { onAuthStateChange, getUserTeamData, isAdminLoggedIn, checkLoginPersistence, setupSessionManagement } from '../services/firebase';
 
 const AuthContext = createContext();
 

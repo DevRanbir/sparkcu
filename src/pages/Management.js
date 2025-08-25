@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   isAdminLoggedIn, 
-  getAdminSession, 
   logoutAdmin, 
   getAllTeams, 
   getCountdownData, 
@@ -314,15 +313,6 @@ function Management() {
     return matchesSearch && matchesFilter;
   });
 
-  const getSubmissionFilterDisplayName = (filter) => {
-    switch (filter) {
-      case 'all': return 'All Submissions';
-      case 'today': return 'Submitted Today';
-      case 'this-week': return 'This Week';
-      default: return 'All Submissions';
-    }
-  };
-
   const formatSubmissionDate = (timestamp) => {
     if (!timestamp) return 'N/A';
     
@@ -336,7 +326,6 @@ function Management() {
     }
 
     const now = new Date();
-    const today = now.toDateString();
     
     // Find events for today that haven't passed yet
     const todayEvents = scheduleData.filter(item => {
@@ -908,7 +897,7 @@ function Management() {
             <div className="countdown-section">
               <form onSubmit={handleCountdownUpdate} className="countdown-form">
                 <div className="form-group">
-                  <label htmlFor="countdown-title">Event Title:</label>
+                  <label htmlFor="countdown-title">Event Title</label>
                   <input
                     type="text"
                     id="countdown-title"
@@ -920,7 +909,7 @@ function Management() {
                 </div>
                 
                 <div className="form-group">
-                  <label htmlFor="countdown-description">Description:</label>
+                  <label htmlFor="countdown-description">Description</label>
                   <input
                     type="text"
                     id="countdown-description"
@@ -932,7 +921,7 @@ function Management() {
                 </div>
                 
                 <div className="form-group">
-                  <label htmlFor="countdown-date">Target Date & Time:</label>
+                  <label htmlFor="countdown-date">Target Date & Time</label>
                   <input
                     type="datetime-local"
                     id="countdown-date"

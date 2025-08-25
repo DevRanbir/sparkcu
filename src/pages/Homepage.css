@@ -125,7 +125,7 @@
 .nav-links {
   display: flex;
   gap: 2rem;
-  margin: 2rem 0;
+  margin: 0.5rem 0;
   justify-content: center;
   flex-wrap: wrap;
 }

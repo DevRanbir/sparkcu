@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getScheduleData } from '../services/firebase';
 import './Schedule.css';
 
@@ -9,7 +9,7 @@ const Schedule = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
 
   // Fallback data if Firebase data can't be fetched
-  const fallbackData = [
+  const fallbackData = useMemo(() => [
     {
       time: "12:00 PM",
       event: "Opening Notification",
@@ -17,7 +17,7 @@ const Schedule = () => {
       location: "Spark Website",
       type: "registration"
     }
-  ];
+  ], []);
 
   const loadScheduleData = useCallback(async () => {
     try {
@@ -42,7 +42,7 @@ const Schedule = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fallbackData]);
 
   useEffect(() => {
     loadScheduleData();

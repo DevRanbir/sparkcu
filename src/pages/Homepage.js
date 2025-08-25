@@ -1,15 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import './Homepage.css';
 import RotatingText from '../TextAnimations/RotatingText/RotatingText';
-import { getAllTeams, getScheduleData, getAnnouncements, getCountdownData } from '../services/firebase';
+import { getAllTeams, getCountdownData } from '../services/firebase';
 
 function Homepage() {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasAutoPlayed, setHasAutoPlayed] = useState(false);
   const [teams, setTeams] = useState([]);
-  const [scheduleData, setScheduleData] = useState([]);
-  const [announcements, setAnnouncements] = useState([]);
   const [countdownData, setCountdownData] = useState({});
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -18,68 +17,7 @@ function Homepage() {
     seconds: 0
   });
 
-  useEffect(() => {
-    // Remove automatic video play to avoid browser restrictions
-    // Video will only play when user clicks on it
-    
-    // Fetch data for stats
-    fetchData();
-  }, []);
-
-  // Countdown timer effect
-  useEffect(() => {
-    if (countdownData.targetDate) {
-      const interval = setInterval(() => {
-        calculateTimeLeft();
-      }, 1000);
-
-      return () => clearInterval(interval);
-    }
-  }, [countdownData.targetDate]);
-
-  const fetchData = async () => {
-    try {
-      const [teamsResponse, scheduleResponse, announcementsResponse, countdownResponse] = await Promise.all([
-        getAllTeams(),
-        getScheduleData(),
-        getAnnouncements(),
-        getCountdownData()
-      ]);
-      
-      // Extract teams data
-      const teamsData = teamsResponse?.success && teamsResponse?.teams ? teamsResponse.teams : [];
-      
-      // Extract schedule data
-      const scheduleDataArray = scheduleResponse?.success && scheduleResponse?.data ? scheduleResponse.data : [];
-      
-      // Extract announcements data
-      const announcementsData = announcementsResponse?.success && announcementsResponse?.announcements ? announcementsResponse.announcements : [];
-      
-      // Extract countdown data
-      const countdownDataObj = countdownResponse?.success && countdownResponse?.data ? countdownResponse.data : {};
-      
-      setTeams(teamsData);
-      setScheduleData(scheduleDataArray);
-      setAnnouncements(announcementsData);
-      setCountdownData(countdownDataObj);
-      
-      console.log('Fetched data:', {
-        teams: teamsData.length,
-        schedule: scheduleDataArray.length,
-        announcements: announcementsData.length,
-        countdown: countdownDataObj
-      });
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      // Set default values on error
-      setTeams([]);
-      setScheduleData([]);
-      setAnnouncements([]);
-      setCountdownData({});
-    }
-  };
-
-  const calculateTimeLeft = () => {
+  const calculateTimeLeft = useCallback(() => {
     if (!countdownData.targetDate) return;
     
     const now = new Date().getTime();
@@ -96,30 +34,69 @@ function Homepage() {
     } else {
       setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
     }
-  };
+  }, [countdownData.targetDate]);
 
-  const getNextScheduledTask = () => {
-    if (!scheduleData.length) return { event: 'No scheduled tasks', time: 'None' };
+  useEffect(() => {
+    // Fetch data for stats
+    fetchData();
     
-    const now = new Date();
-    const upcoming = scheduleData
-      .filter(item => new Date(item.date + ' ' + item.time) > now)
-      .sort((a, b) => new Date(a.date + ' ' + a.time) - new Date(b.date + ' ' + b.time));
+    // Auto-play video once on page load
+    const autoPlayVideo = async () => {
+      if (videoRef.current && !hasAutoPlayed) {
+        try {
+          await videoRef.current.play();
+          setIsPlaying(true);
+          setHasAutoPlayed(true);
+        } catch (error) {
+          console.log('Auto-play was prevented by browser:', error);
+          // Auto-play failed, user interaction will be required
+        }
+      }
+    };
+
+    // Small delay to ensure video is loaded
+    const timer = setTimeout(autoPlayVideo, 500);
     
-    if (upcoming.length > 0) {
-      return {
-        event: upcoming[0].event,
-        time: new Date(upcoming[0].date + ' ' + upcoming[0].time).toLocaleDateString()
-      };
+    return () => clearTimeout(timer);
+  }, [hasAutoPlayed]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (countdownData.targetDate) {
+      const interval = setInterval(() => {
+        calculateTimeLeft();
+      }, 1000);
+
+      return () => clearInterval(interval);
     }
-    
-    return { event: 'No upcoming tasks', time: 'None' };
-  };
+  }, [countdownData.targetDate, calculateTimeLeft]);
 
-  const formatTimestamp = (timestamp) => {
-    if (!timestamp) return 'Unknown';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString();
+  const fetchData = async () => {
+    try {
+      const [teamsResponse, countdownResponse] = await Promise.all([
+        getAllTeams(),
+        getCountdownData()
+      ]);
+      
+      // Extract teams data
+      const teamsData = teamsResponse?.success && teamsResponse?.teams ? teamsResponse.teams : [];
+      
+      // Extract countdown data
+      const countdownDataObj = countdownResponse?.success && countdownResponse?.data ? countdownResponse.data : {};
+      
+      setTeams(teamsData);
+      setCountdownData(countdownDataObj);
+      
+      console.log('Fetched data:', {
+        teams: teamsData.length,
+        countdown: countdownDataObj
+      });
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // Set default values on error
+      setTeams([]);
+      setCountdownData({});
+    }
   };
 
   const handleVideoClick = () => {
@@ -128,7 +105,11 @@ function Homepage() {
         videoRef.current.pause();
         setIsPlaying(false);
       } else {
-        videoRef.current.currentTime = 0; // Reset to beginning
+        // If it hasn't auto-played yet, start from beginning
+        if (!hasAutoPlayed) {
+          videoRef.current.currentTime = 0;
+          setHasAutoPlayed(true);
+        }
         videoRef.current.play()
           .then(() => {
             setIsPlaying(true);
@@ -165,12 +146,12 @@ function Homepage() {
                 "Workshop"
               ]}
               staggerFrom={"last"}
-              initial={{ y: "-150%" }}
+              initial={{ y: "-140%" }}
               animate={{ y: 0 }}
               staggerDuration={0.025}
               splitLevelClassName="overflow-hidden pb-0.5 sm:pb-1 md:pb-1"
               transition={{ type: "spring", damping: 30, stiffness: 400 }}
-              rotationInterval={5000}
+              rotationInterval={4000}
             />
           </h1>
           <p className="hero-subtitle">Hackathon-style competition for 1st & 2nd year CSE students</p>

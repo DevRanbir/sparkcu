@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginAdmin, isAdminLoggedIn, createDefaultAdmin } from '../services/firebase';
+import { loginAdmin, isAdminLoggedIn } from '../services/firebase';
 import './Admin.css';
 
 function Admin() {
@@ -8,8 +8,6 @@ function Admin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [setupMode, setSetupMode] = useState(false);
-  const [setupMessage, setSetupMessage] = useState('');
   const [checkingAuth, setCheckingAuth] = useState(true);
   const navigate = useNavigate();
 
@@ -27,27 +25,6 @@ function Admin() {
     // Only check once on mount
     checkAdminAuth();
   }, [navigate]);
-
-  const handleSetupAdmin = async () => {
-    setLoading(true);
-    setSetupMessage('');
-    
-    try {
-      const result = await createDefaultAdmin();
-      
-      if (result.success) {
-        setSetupMessage(`Admin created successfully! Admin ID: ${result.credentials.adminId}, Password: ${result.credentials.password}`);
-        setAdminId(result.credentials.adminId);
-        setPassword(result.credentials.password);
-      } else {
-        setSetupMessage(result.message);
-      }
-    } catch (error) {
-      setSetupMessage('Error setting up admin. Please try again.');
-    }
-    
-    setLoading(false);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -104,7 +81,6 @@ function Admin() {
         
         <form onSubmit={handleSubmit} className="admin-form">
           {error && <div className="error-message">{error}</div>}
-          {setupMessage && <div className="success-message">{setupMessage}</div>}
           
           <div className="form-group">
             <label htmlFor="adminId">Admin ID</label>

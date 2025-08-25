@@ -12,8 +12,7 @@ import {
   onAuthStateChanged,
   setPersistence,
   browserLocalPersistence,
-  browserSessionPersistence,
-  getUser
+  browserSessionPersistence
 } from "firebase/auth";
 import { 
   getFirestore, 
