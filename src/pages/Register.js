@@ -3,7 +3,7 @@ import './Register.css';
 import { registerUser, checkTeamNameExists } from '../services/firebase';
 
 const Register = () => {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     email: '',
     leaderName: '',
@@ -21,7 +21,10 @@ const Register = () => {
     confirmPassword: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const totalSteps = 5;
 
@@ -48,11 +51,70 @@ const Register = () => {
   };
 
   const handleMemberChange = (index, field, value) => {
+    // Format UID input
+    if (field === 'uid') {
+      value = value.toUpperCase().replace(/[^0-9BCS]/g, '');
+      // Don't auto-format while typing, just filter characters
+    }
+    
+    // Format mobile input - only digits, max 10
+    if (field === 'mobile') {
+      value = value.replace(/\D/g, '').substring(0, 10);
+    }
+
     setFormData(prev => ({
       ...prev,
       members: prev.members.map((member, i) => 
         i === index ? { ...member, [field]: value } : member
       )
+    }));
+  };
+
+  const handleMemberUidBlur = (index, value) => {
+    // Auto-format UID when user stops typing (on blur)
+    if (value.length >= 2 && !value.includes('BCS')) {
+      if (/^\d{2}/.test(value)) {
+        const formattedValue = value.substring(0, 2) + 'BCS' + value.substring(2);
+        setFormData(prev => ({
+          ...prev,
+          members: prev.members.map((member, i) => 
+            i === index ? { ...member, uid: formattedValue } : member
+          )
+        }));
+      }
+    }
+  };
+
+  const handleLeaderUidChange = (value) => {
+    // Format UID input
+    value = value.toUpperCase().replace(/[^0-9BCS]/g, '');
+    // Don't auto-format while typing, just filter characters
+    
+    setFormData(prev => ({
+      ...prev,
+      leaderUid: value
+    }));
+  };
+
+  const handleLeaderUidBlur = (value) => {
+    // Auto-format UID when user stops typing (on blur)
+    if (value.length >= 2 && !value.includes('BCS')) {
+      if (/^\d{2}/.test(value)) {
+        const formattedValue = value.substring(0, 2) + 'BCS' + value.substring(2);
+        setFormData(prev => ({
+          ...prev,
+          leaderUid: formattedValue
+        }));
+      }
+    }
+  };
+
+  const handleLeaderMobileChange = (value) => {
+    // Only digits, max 10
+    value = value.replace(/\D/g, '').substring(0, 10);
+    setFormData(prev => ({
+      ...prev,
+      leaderMobile: value
     }));
   };
 
@@ -69,9 +131,15 @@ const Register = () => {
           showToast('Please enter a valid email address.');
           return false;
         }
-        // Validate mobile number (assuming 10-digit format)
-        if (!/^\+?[\d\s-]{10,15}$/.test(formData.leaderMobile.replace(/\s/g, ''))) {
-          showToast('Please enter a valid mobile number.');
+        // Validate UID format (XXBCSXXXX... where X is any digit)
+        const uidPattern = /^\d{2}BCS\d+$/;
+        if (!uidPattern.test(formData.leaderUid)) {
+          showToast('University ID must be in format: XXBCSXXXX (e.g., 24BCS12345)');
+          return false;
+        }
+        // Validate mobile number (10-digit format)
+        if (!/^\d{10}$/.test(formData.leaderMobile)) {
+          showToast('Please enter a valid 10-digit mobile number.');
           return false;
         }
         return true;
@@ -94,6 +162,13 @@ const Register = () => {
         }
         
         for (let member of filledMembers) {
+          // Validate UID format
+          const uidPattern = /^\d{2}BCS\d+$/;
+          if (!uidPattern.test(member.uid)) {
+            showToast('All University IDs must be in format: XXBCSXXXX (e.g., 24BCS12345)');
+            return false;
+          }
+          // Validate mobile number
           if (member.mobile.length !== 10 || !/^\d+$/.test(member.mobile)) {
             showToast('Please enter valid 10-digit mobile numbers.');
             return false;
@@ -107,8 +182,29 @@ const Register = () => {
           return false;
         }
         
-        if (formData.password.length < 6) {
-          showToast('Password must be at least 6 characters long.');
+        // Enhanced password validation
+        if (formData.password.length < 8) {
+          showToast('Password must be at least 8 characters long.');
+          return false;
+        }
+        
+        if (!/[A-Z]/.test(formData.password)) {
+          showToast('Password must contain at least one uppercase letter.');
+          return false;
+        }
+        
+        if (!/[a-z]/.test(formData.password)) {
+          showToast('Password must contain at least one lowercase letter.');
+          return false;
+        }
+        
+        if (!/\d/.test(formData.password)) {
+          showToast('Password must contain at least one number.');
+          return false;
+        }
+        
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
+          showToast('Password must contain at least one special character.');
           return false;
         }
         
@@ -135,22 +231,52 @@ const Register = () => {
   };
 
   const nextStep = async () => {
-    if (validateStep(currentStep)) {
-      const asyncValid = await validateStepAsync(currentStep);
-      if (asyncValid) {
-        setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+    if (isNavigating) return; // Prevent multiple rapid clicks
+    
+    setIsNavigating(true);
+    
+    try {
+      // Step 0 doesn't need validation, just move to step 1
+      if (currentStep === 0) {
+        setCurrentStep(1);
+      } else if (validateStep(currentStep)) {
+        const asyncValid = await validateStepAsync(currentStep);
+        if (asyncValid) {
+          setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+        }
       }
+    } finally {
+      // Add a small delay to prevent rapid clicking
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 300);
     }
   };
 
   const prevStep = () => {
+    if (isNavigating) return; // Prevent multiple rapid clicks
+    
+    setIsNavigating(true);
     setToast({ show: false, message: '', type: '' });
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+    
+    // Add a small delay to prevent rapid clicking
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 300);
   };
 
   const goToStep = (step) => {
+    if (isNavigating) return; // Prevent multiple rapid clicks
+    
+    setIsNavigating(true);
     setToast({ show: false, message: '', type: '' });
     setCurrentStep(step);
+    
+    // Add a small delay to prevent rapid clicking
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 300);
   };
 
   const handleSubmit = async (e) => {
@@ -215,9 +341,39 @@ const Register = () => {
       password: '',
       confirmPassword: ''
     });
-    setCurrentStep(1);
+    setCurrentStep(0);
     setToast({ show: false, message: '', type: '' });
   };
+
+  const renderStep0 = () => (
+    <div className="step-content welcome-step">
+      <div className="welcome-content">
+        <h1 className="welcome-title">Welcome to SparkCU!</h1>
+        <p className="welcome-description">
+          Join the ultimate coding competition and showcase your programming skills. 
+          Register your team and compete with the best developers from around the university.
+        </p>
+        
+        <div className="welcome-actions">
+          <button
+            type="button"
+            className="start-button"
+            onClick={nextStep}
+            disabled={isNavigating}
+          >
+            {isNavigating ? 'Starting...' : 'Start Registration →'}
+          </button>
+          
+          <div className="login-option">
+            <span>Already have an account?</span>
+            <a href="/login" className="login-link-small">
+              Login here
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   const renderStep1 = () => (
     <div className="step-content">
@@ -257,22 +413,28 @@ const Register = () => {
               id="leaderUid"
               name="leaderUid"
               value={formData.leaderUid}
-              onChange={handleInputChange}
-              placeholder="e.g., 24BCS00000"
+              onChange={(e) => handleLeaderUidChange(e.target.value)}
+              onBlur={(e) => handleLeaderUidBlur(e.target.value)}
+              placeholder="e.g., 24BCS12345"
               required
             />
           </div>
           <div className="form-group">
             <label htmlFor="leaderMobile">Mobile Number *</label>
-            <input
-              type="tel"
-              id="leaderMobile"
-              name="leaderMobile"
-              value={formData.leaderMobile}
-              onChange={handleInputChange}
-              placeholder="+91 9876543210"
-              required
-            />
+            <div className="mobile-input-container">
+              <div className="country-code">+91</div>
+              <input
+                type="tel"
+                id="leaderMobile"
+                name="leaderMobile"
+                value={formData.leaderMobile}
+                onChange={(e) => handleLeaderMobileChange(e.target.value)}
+                placeholder="9876543210"
+                required
+                className="mobile-input"
+                maxLength="10"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -355,7 +517,8 @@ const Register = () => {
                     type="text"
                     value={member.uid}
                     onChange={(e) => handleMemberChange(index, 'uid', e.target.value)}
-                    placeholder="Enter university ID"
+                    onBlur={(e) => handleMemberUidBlur(index, e.target.value)}
+                    placeholder="e.g., 24BCS12345"
                   />
                 </div>
               </div>
@@ -363,13 +526,17 @@ const Register = () => {
               <div className="form-row">
                 <div className="form-group">
                   <label>Mobile Number</label>
-                  <input
-                    type="tel"
-                    value={member.mobile}
-                    onChange={(e) => handleMemberChange(index, 'mobile', e.target.value)}
-                    placeholder="10-digit mobile number"
-                    maxLength="10"
-                  />
+                  <div className="mobile-input-container">
+                    <div className="country-code">+91</div>
+                    <input
+                      type="tel"
+                      value={member.mobile}
+                      onChange={(e) => handleMemberChange(index, 'mobile', e.target.value)}
+                      placeholder="9876543210"
+                      maxLength="10"
+                      className="mobile-input"
+                    />
+                  </div>
                 </div>
                 <div className="form-group">
                   {/* Empty for layout balance */}
@@ -388,37 +555,95 @@ const Register = () => {
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="password">Password *</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              placeholder="Enter a secure password (min 6 characters)"
-              required
-              minLength="6"
-            />
+            <div className="password-input-container">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                placeholder="Enter a secure password (min 8 characters)"
+                required
+                minLength="8"
+                className="password-input"
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
           <div className="form-group">
             <label htmlFor="confirmPassword">Confirm Password *</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleInputChange}
-              placeholder="Re-enter your password"
-              required
-              minLength="6"
-            />
+            <div className="password-input-container">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                placeholder="Re-enter your password"
+                required
+                minLength="8"
+                className="password-input"
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+              >
+                {showConfirmPassword ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="password-requirements">
           <h4>Password Requirements:</h4>
           <ul>
-            <li className={formData.password.length >= 6 ? 'valid' : ''}>
-              At least 6 characters long
+            <li className={formData.password.length >= 8 ? 'valid' : ''}>
+              At least 8 characters long
+            </li>
+            <li className={/[A-Z]/.test(formData.password) ? 'valid' : ''}>
+              Contains uppercase letter (A-Z)
+            </li>
+            <li className={/[a-z]/.test(formData.password) ? 'valid' : ''}>
+              Contains lowercase letter (a-z)
+            </li>
+            <li className={/\d/.test(formData.password) ? 'valid' : ''}>
+              Contains numeric character (0-9)
+            </li>
+            <li className={/[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? 'valid' : ''}>
+              Contains special character (!@#$%^&*)
             </li>
             <li className={formData.password === formData.confirmPassword && formData.password ? 'valid' : ''}>
               Passwords match
@@ -455,6 +680,18 @@ const Register = () => {
   // Step info content for left panel
   const getStepInfo = () => {
     switch (currentStep) {
+      case 0:
+        return {
+          indicator: "Getting Started",
+          title: "Join SparkCU Competition",
+          description: "Ready to showcase your coding skills? Register your team for the ultimate programming competition and compete with the best developers.",
+          features: [
+            "Team-based coding challenges",
+            "Real-world problem solving",
+            "Exciting prizes and recognition",
+            "Networking opportunities"
+          ]
+        };
       case 1:
         return {
           indicator: "Step 1 of 4",
@@ -567,39 +804,49 @@ const Register = () => {
           </div>
 
           {/* Step Progress */}
-          <div className="step-progress">
-            <div className="progress-line"></div>
-            <div 
-              className="progress-line-active" 
-              style={{ width: `${(Math.min(currentStep - 1, 3) / 3) * 100}%` }}
-            ></div>
-            <div className="step-dots">
-              {[1, 2, 3, 4].map((step) => (
-                <div
-                  key={step}
-                  className={`step-dot ${currentStep >= step ? 'active' : ''} ${currentStep > step ? 'completed' : ''}`}
-                  onClick={() => step < currentStep && goToStep(step)}
-                >
-                  {currentStep > step ? '✓' : step}
-                </div>
-              ))}
+          {currentStep > 0 && (
+            <div className="step-progress">
+              <div className="progress-line"></div>
+              <div 
+                className="progress-line-active" 
+                style={{ width: `${(Math.min(currentStep - 1, 3) / 3) * 100}%` }}
+              ></div>
+              <div className="step-dots">
+                {[
+                  { num: 1, label: 'Leader' },
+                  { num: 2, label: 'Team' },
+                  { num: 3, label: 'Members' },
+                  { num: 4, label: 'Security' }
+                ].map((step) => (
+                  <div
+                    key={step.num}
+                    className={`step-dot ${currentStep >= step.num ? 'active' : ''} ${currentStep > step.num ? 'completed' : ''}`}
+                    onClick={() => step.num < currentStep && goToStep(step.num)}
+                    data-label={step.label}
+                  >
+                    {currentStep > step.num ? '✓' : step.num}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="form-container">
+            {currentStep === 0 && renderStep0()}
             {currentStep === 1 && renderStep1()}
             {currentStep === 2 && renderStep2()}
             {currentStep === 3 && renderStep3()}
             {currentStep === 4 && renderStep4()}
             {currentStep === 5 && renderStep5()}
 
-            {currentStep < 5 && (
+            {currentStep > 0 && currentStep < 5 && (
               <div className="form-navigation">
                 {currentStep > 1 && (
                   <button
                     type="button"
                     className="nav-button prev-button"
                     onClick={prevStep}
+                    disabled={isNavigating || isLoading}
                   >
                     ← Previous
                   </button>
@@ -610,8 +857,9 @@ const Register = () => {
                     type="button"
                     className="nav-button next-button"
                     onClick={nextStep}
+                    disabled={isNavigating || isLoading}
                   >
-                    Next →
+                    {isNavigating ? 'Please wait...' : 'Next →'}
                   </button>
                 )}
                 
@@ -620,7 +868,7 @@ const Register = () => {
                     type="button"
                     className="nav-button submit-button"
                     onClick={handleSubmit}
-                    disabled={isLoading}
+                    disabled={isLoading || isNavigating}
                   >
                     {isLoading ? 'Registering...' : 'Complete Registration'}
                   </button>

@@ -220,6 +220,57 @@ const Dashboard = () => {
     }
   };
 
+  // Function to render text with inline link buttons
+  const renderTextWithLinks = (text) => {
+    if (!text) return text;
+    
+    // Regex to match URLs (http/https and domain.com patterns)
+    const urlRegex = /(?:https?:\/\/[^\s]+|(?:www\.)?[a-zA-Z0-9-]+\.(?:com|org|net|edu|gov|io|co|in|uk|de|fr|it|es|ru|jp|cn|br|au|ca|mx|nl|se|no|dk|fi|pl|cz|sk|hu|ro|bg|hr|si|ee|lv|lt|mt|cy|lu|be|at|ch|li|is|ie|pt|gr|tr|il|ae|sa|qa|kw|bh|om|jo|lb|sy|iq|ir|af|pk|bd|lk|np|bt|mm|th|la|kh|vn|my|sg|id|ph|bn|tl|pg|sb|vu|fj|to|ws|tv|nr|pw|fm|mh|ki|tk|nu|ck|as|gu|mp|vi|pr|vg|ai|ms|tc|ky|bm|fk|gs|sh|ta|ac|cc|cx|nf|hm|aq|bv|sj|um|io|tf|re|yt|pm|bl|mf|nc|pf|wf|tk)[^\s]*)/gi;
+    
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    let linkIndex = 0;
+
+    while ((match = urlRegex.exec(text)) !== null) {
+      // Add text before the URL
+      if (match.index > lastIndex) {
+        parts.push(text.slice(lastIndex, match.index));
+      }
+
+      // Add the URL with inline button
+      const url = match[0];
+      const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+      
+      parts.push(
+        <span key={`link-${linkIndex}`} className="announcement-inline-link">
+          <span className="link-text">{url}</span>
+          <button
+            className="announcement-inline-link-button"
+            onClick={() => openLink(fullUrl)}
+            title={`Open ${url}`}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15,3 21,3 21,9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </button>
+        </span>
+      );
+
+      lastIndex = urlRegex.lastIndex;
+      linkIndex++;
+    }
+
+    // Add remaining text after the last URL
+    if (lastIndex < text.length) {
+      parts.push(text.slice(lastIndex));
+    }
+
+    return parts.length > 1 ? parts : text;
+  };
+
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'N/A';
     
@@ -529,12 +580,19 @@ const Dashboard = () => {
                   announcements.map((announcement) => (
                     <div key={announcement.id} className={`announcement-card ${announcement.type}`}>
                       <div className="announcement-header">
-                        <h3>{announcement.title}</h3>
+                        <div className="announcement-title-section">
+                          <h3>{announcement.title}</h3>
+                          <span className={`announcement-type-badge ${announcement.type}`}>
+                            {announcement.type?.toUpperCase() || 'INFO'}
+                          </span>
+                        </div>
                         <span className="announcement-timestamp">
                           {formatTimestamp(announcement.createdAt)}
                         </span>
                       </div>
-                      <p>{announcement.message}</p>
+                      <div className="announcement-message">
+                        {renderTextWithLinks(announcement.message)}
+                      </div>
                     </div>
                   ))
                 ) : (

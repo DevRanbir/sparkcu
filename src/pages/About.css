@@ -283,9 +283,9 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  padding: 20px;
+  padding: 10px;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: auto;
   /* Additional scrollbar hiding */
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -293,6 +293,42 @@
 
 .fullscreen-content::-webkit-scrollbar {
   display: none;
+}
+
+/* Ensure PDF canvas renders at high quality */
+.fullscreen-content .react-pdf__Page {
+  max-width: none !important;
+  max-height: none !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+.fullscreen-content .react-pdf__Page__canvas {
+  max-width: 98vw !important;
+  max-height: 98vh !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  image-rendering: auto !important;
+  image-rendering: -webkit-optimize-contrast !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Ensure text layer renders properly in fullscreen */
+.fullscreen-content .react-pdf__Page__textContent {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+}
+
+.fullscreen-content .react-pdf__Page__textContent span {
+  background-color: transparent !important;
+  color: transparent !important;
 }
 
 .fs-exit-btn {
@@ -316,7 +352,7 @@
 
 .fullscreen-nav-controls {
   position: absolute;
-  bottom: 30px;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -329,7 +365,7 @@
   height: 50px;
   border: none;
   border-radius: 5%;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0);
   color: black;
   font-size: 18px;
   font-weight: bold;
@@ -363,7 +399,6 @@
 
 .fullscreen-modal .react-pdf__Page__canvas {
   max-width: 100% !important;
-  max-height: 100% !important;
   width: auto !important;
   height: auto !important;
   object-fit: contain;

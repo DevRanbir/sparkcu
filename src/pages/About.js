@@ -162,12 +162,32 @@ function About() {
   // Calculate responsive width for PDF pages
   const getPageWidth = useCallback((isFullscreenMode = false) => {
     if (isFullscreenMode) {
-      return Math.min(window.innerWidth * 0.9, window.innerHeight * 0.9 * 0.707);
+      // For fullscreen, make it larger and crisp
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const pdfAspectRatio = 1.414; // Standard A4 ratio
+      
+      // Calculate width based on available screen space - make it larger
+      const maxWidth = screenWidth * 0.85; // Increased from 0.95
+      const maxHeightBasedWidth = (screenHeight * 0.85) / pdfAspectRatio; // Increased from 0.9
+      
+      // Use the larger of the two for better visibility
+      const optimalWidth = Math.max(maxWidth, maxHeightBasedWidth);
+      
+      // Return larger width for better scale
+      return Math.floor(optimalWidth);
     }
     return viewMode === 'single'
       ? Math.min(800, window.innerWidth - 100)
       : Math.min(600, window.innerWidth - 100);
   }, [viewMode]);
+
+  // Calculate optimal scale for fullscreen
+  const getFullscreenScale = useCallback(() => {
+    const dpr = window.devicePixelRatio || 1;
+    // Use higher scale for crisp text and larger display
+    return Math.max(1.5, Math.min(dpr * 2, 4));
+  }, []);
 
   // Loading component
   const renderLoadingComponent = () => (
@@ -317,7 +337,8 @@ function About() {
               <Page
                 pageNumber={currentPage}
                 width={getPageWidth(true)}
-                renderTextLayer={false}
+                scale={getFullscreenScale()}
+                renderTextLayer={true}
                 renderAnnotationLayer={false}
                 loading={<div style={{ padding: '20px' }}>Loading page...</div>}
                 error={<div style={{ padding: '20px', color: '#ff6b6b' }}>Error loading page</div>}

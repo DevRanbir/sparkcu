@@ -315,7 +315,7 @@ const Login = ({ onLogin }) => {
                 <div className="feature-icon">🏆</div>
                 <div className="feature-text">
                   <h4>Win Amazing Prizes</h4>
-                  <p>Compete for exciting rewards and recognition</p>
+                  <p>Compete for exciting rewards, recognition and certicates</p>
                 </div>
               </div>
             </div>

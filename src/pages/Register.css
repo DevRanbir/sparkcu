@@ -1,11 +1,10 @@
 /* Register Page Styles - Mobile Optimized */
 .register-page {
   min-height: 100vh;
-  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 0.5rem;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -88,21 +87,19 @@
 
 /* Main Container */
 .register-container {
-  background: #ffffff;
   border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 1000px;
-  min-height: 600px;
+  max-width: 900px;
   display: flex;
   overflow: hidden;
+  min-height: 400px;
 }
 
 /* Left Side - Step Info */
 .step-info-panel {
   flex: 1;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 2rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -127,26 +124,26 @@
 }
 
 .current-step-indicator {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   opacity: 0.8;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .step-title {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   line-height: 1.2;
 }
 
 .step-description {
-  font-size: 16px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.4;
   opacity: 0.9;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 
 .step-features {
@@ -158,8 +155,8 @@
 .step-features li {
   display: flex;
   align-items: center;
-  margin-bottom: 12px;
-  font-size: 14px;
+  margin-bottom: 8px;
+  font-size: 13px;
   opacity: 0.9;
 }
 
@@ -167,36 +164,40 @@
   content: '✓';
   background: rgba(255, 255, 255, 0.2);
   color: white;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
+  margin-right: 10px;
   font-weight: bold;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 /* Right Side - Form */
 .form-panel {
-  flex: 1.2;
-  padding: 2rem;
+  flex: 3;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  overflow-y: auto;
+}
+
+.form-group {
+  margin-top: 4px;
 }
 
 .register-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .register-header h1 {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: #333;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -205,7 +206,7 @@
 
 .register-header p {
   color: #666;
-  font-size: 14px;
+  font-size: 13px;
   margin: 0;
 }
 
@@ -213,7 +214,6 @@
 .step-progress {
   display: flex;
   justify-content: center;
-  margin-bottom: 2rem;
   position: relative;
 }
 
@@ -240,22 +240,22 @@
 .step-dots {
   display: flex;
   justify-content: space-between;
-  width: 200px;
+  width: 180px;
   position: relative;
   z-index: 3;
 }
 
 .step-dot {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: #e9ecef;
-  border: 3px solid #ffffff;
+  border: 2px solid #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 12px;
   color: #666;
   transition: all 0.3s ease;
   cursor: pointer;
@@ -282,19 +282,20 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 300px;
+  min-height: 220px;
 }
 
 .register-form {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0px;
+  margin-bottom: -15px;
 }
 
 /* Form Groups */
 .form-row {
-  gap: 16px;
+  gap: 12px;
 }
 
 .form-group {
@@ -306,16 +307,16 @@
 .form-group label {
   font-weight: 600;
   color: #333;
-  margin-bottom: 6px;
-  font-size: 14px;
+  margin-bottom: 4px;
+  font-size: 13px;
 }
 
 .form-group input,
 .form-group select {
-  padding: 12px 16px;
+  padding: 10px 12px;
   border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 13px;
   transition: all 0.2s ease;
   background: #ffffff;
   color: #333;
@@ -336,6 +337,98 @@
   cursor: pointer;
 }
 
+/* Mobile input with country code */
+.mobile-input-container {
+  display: flex;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  background: #ffffff;
+}
+
+.mobile-input-container:focus-within {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.country-code {
+  background: #f8f9fa;
+  border-right: 1px solid #e9ecef;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #333;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.mobile-input {
+  flex: 1;
+  border: none;
+  padding: 10px 12px;
+  font-size: 13px;
+  outline: none;
+  background: transparent;
+  color: #333;
+}
+
+.mobile-input::placeholder {
+  color: #adb5bd;
+}
+
+/* Password input with toggle button */
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input {
+  flex: 1;
+  padding: 10px 45px 10px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  background: #ffffff;
+  color: #333;
+}
+
+.password-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.password-input::placeholder {
+  color: #adb5bd;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  color: #666;
+  transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle:hover {
+  color: #667eea;
+}
+
+.password-toggle:focus {
+  outline: none;
+  color: #667eea;
+}
+
 /* Members Grid for Step 3 */
 .members-section {
   flex: 1;
@@ -346,28 +439,27 @@
 .members-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: 12px;
   flex: 1;
 }
 
 .member-card {
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
+  background: #f8f9fa00 !important;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef00;
   transition: all 0.2s ease;
 }
 
 .member-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0);
 }
 
 .member-card h4 {
   color: #333;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -375,7 +467,7 @@
 }
 
 .member-card .form-row {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .member-card .form-row:last-child {
@@ -385,17 +477,17 @@
 /* Password Requirements */
 .password-requirements {
   background: #f8f9fa;
-  padding: 16px;
-  border-radius: 8px;
+  padding: 12px;
+  border-radius: 6px;
   border: 1px solid #e9ecef;
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .password-requirements h4 {
   color: #333;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .password-requirements ul {
@@ -407,9 +499,9 @@
 .password-requirements li {
   display: flex;
   align-items: center;
-  font-size: 13px;
+  font-size: 12px;
   color: #666;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   transition: color 0.3s ease;
 }
 
@@ -439,8 +531,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 2rem;
-  padding-top: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 0.8rem;
   border-top: 1px solid #e9ecef;
 }
 
@@ -448,13 +540,13 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 12px 24px;
-  font-size: 14px;
+  padding: 10px 20px;
+  font-size: 13px;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 100px;
+  min-width: 90px;
 }
 
 .nav-button:hover:not(:disabled) {
@@ -494,57 +586,181 @@
 }
 
 .success-icon svg {
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   color: #28a745;
 }
 
 .success-step h3 {
   color: #28a745;
-  font-size: 24px;
-  margin-bottom: 16px;
+  font-size: 20px;
+  margin-bottom: 12px;
   font-weight: 700;
 }
 
 .success-description {
-  font-size: 16px;
+  font-size: 14px;
   color: #666;
-  margin-bottom: 24px;
-  line-height: 1.5;
-  max-width: 400px;
+  margin-bottom: 18px;
+  line-height: 1.4;
+  max-width: 350px;
 }
 
 .team-summary {
   background: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
+  padding: 15px;
+  border-radius: 6px;
   border: 1px solid #e9ecef;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
   text-align: left;
-  max-width: 400px;
+  max-width: 350px;
   width: 100%;
 }
 
 .team-summary h4 {
   color: #333;
-  margin-bottom: 12px;
-  font-size: 16px;
+  margin-bottom: 10px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .team-summary p {
   color: #666;
-  margin-bottom: 8px;
-  font-size: 14px;
+  margin-bottom: 6px;
+  font-size: 13px;
 }
 
 .team-summary p:last-child {
   margin-bottom: 0;
 }
 
+/* Welcome Step */
+.welcome-step {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  padding: 2rem 1rem;
+}
+
+.welcome-content {
+  max-width: 500px;
+  width: 100%;
+}
+
+.welcome-icon {
+  margin-bottom: 1.5rem;
+}
+
+.welcome-icon svg {
+  width: 80px;
+  height: 80px;
+  filter: drop-shadow(0 4px 12px rgba(102, 126, 234, 0.3));
+}
+
+.welcome-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+}
+
+.welcome-description {
+  font-size: 1.1rem;
+  color: #666;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.welcome-features {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.feature-icon {
+  font-size: 1.5rem;
+}
+
+.feature-item span:last-child {
+  font-weight: 600;
+  color: #333;
+}
+
+.welcome-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.start-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  min-width: 200px;
+}
+
+.start-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.start-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.login-link-small {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.login-link-small:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
 .final-actions {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   justify-content: center;
   align-items: center;
 }
@@ -553,10 +769,10 @@
   color: #667eea;
   text-decoration: none;
   font-weight: 600;
-  font-size: 14px;
-  padding: 12px 24px;
+  font-size: 13px;
+  padding: 10px 20px;
   border: 2px solid #667eea;
-  border-radius: 8px;
+  border-radius: 6px;
   transition: all 0.2s ease;
 }
 
@@ -580,72 +796,154 @@
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .register-page {
-    padding: 0.5rem;
+    padding: 0.25rem;
+    min-height: 100vh;
+    align-items: flex-start;
+    padding-top: 1rem;
   }
 
   .register-container {
     flex-direction: column;
     max-width: 100%;
     min-height: auto;
+    border-radius: 8px;
+    gap: 2rem;
   }
 
   .step-info-panel {
-    padding: 1.5rem;
-    min-height: 200px;
+    padding: 1rem;
+    min-height: 150px;
   }
 
   .step-title {
-    font-size: 24px;
+    font-size: 20px;
+    line-height: 1.3;
   }
 
   .step-description {
-    font-size: 14px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .step-features li {
+    font-size: 12px;
+    margin-bottom: 6px;
   }
 
   .form-panel {
-    padding: 1.5rem;
+    padding: 1rem;
+  }
+
+  .register-header {
+    margin-bottom: 1rem;
   }
 
   .register-header h1 {
-    font-size: 20px;
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .register-header p {
+    font-size: 12px;
   }
 
   .step-progress {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
   }
 
   .step-dots {
-    width: 150px;
+    width: 140px;
   }
 
   .step-dot {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
   }
 
   .form-row {
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .form-group {
+    margin-bottom: 8px;
+  }
+
+  .form-group label {
+    font-size: 12px;
+    margin-bottom: 3px;
+  }
+
+  .form-group input,
+  .form-group select {
+    padding: 8px 10px;
+    font-size: 13px;
+    border-radius: 5px;
+  }
+
+  .mobile-input-container .country-code {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .mobile-input-container .mobile-input {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .password-input {
+    padding: 8px 35px 8px 10px;
+    font-size: 13px;
+  }
+
+  .password-toggle {
+    right: 8px;
+    padding: 3px;
   }
 
   .members-grid {
-    gap: 12px;
+    gap: 8px;
   }
 
   .member-card {
-    padding: 16px;
+    padding: 12px;
+    border-radius: 5px;
+  }
+
+  .member-card h4 {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .password-requirements {
+    padding: 8px;
+    margin-top: 8px;
+  }
+
+  .password-requirements h4 {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .password-requirements li {
+    font-size: 11px;
+    margin-bottom: 4px;
   }
 
   .form-navigation {
     flex-direction: column;
-    gap: 12px;
-    margin-top: 1.5rem;
+    gap: 8px;
+    margin-top: 1rem;
+    padding-top: 0.8rem;
   }
 
   .nav-button {
     width: 100%;
     order: 1;
+    padding: 10px 16px;
+    font-size: 13px;
   }
 
   .prev-button {
@@ -654,6 +952,39 @@
 
   .final-actions {
     flex-direction: column;
+    gap: 8px;
+  }
+
+  .welcome-step {
+    padding: 1rem;
+  }
+
+  .welcome-title {
+    font-size: 1.8rem;
+    line-height: 1.2;
+    margin-bottom: 0.8rem;
+  }
+
+  .welcome-description {
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+  }
+
+  .welcome-features {
+    gap: 0.75rem;
+    margin-bottom: 1.8rem;
+  }
+
+  .feature-item {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .start-button {
+    padding: 0.8rem 1.5rem;
+    font-size: 0.95rem;
+    min-width: 160px;
   }
 
   /* Toast responsive */
@@ -663,20 +994,59 @@
     left: 10px;
     min-width: auto;
     max-width: none;
+    font-size: 13px;
+  }
+
+  .toast-content {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .toast-message {
+    font-size: 13px;
   }
 }
 
 @media (max-width: 480px) {
+  .register-page {
+    padding: 0.125rem;
+  }
+
   .step-info-panel {
-    padding: 1rem;
+    padding: 0.75rem;
+    min-height: 120px;
+  }
+
+  .step-title {
+    font-size: 18px;
+    line-height: 1.3;
+  }
+
+  .step-description {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .step-features li {
+    font-size: 11px;
+    margin-bottom: 4px;
   }
 
   .form-panel {
-    padding: 1rem;
+    padding: 0.75rem;
+  }
+
+  .register-header {
+    margin-bottom: 0.75rem;
   }
 
   .register-header h1 {
-    font-size: 18px;
+    font-size: 16px;
+    margin-bottom: 3px;
+  }
+
+  .register-header p {
+    font-size: 11px;
   }
 
   .step-dots {
@@ -684,23 +1054,173 @@
   }
 
   .step-dot {
-    width: 24px;
-    height: 24px;
-    font-size: 10px;
+    width: 22px;
+    height: 22px;
+    font-size: 9px;
+  }
+
+  .form-group label {
+    font-size: 11px;
+    margin-bottom: 2px;
   }
 
   .form-group input,
   .form-group select {
-    padding: 10px 12px;
-    font-size: 14px;
+    padding: 7px 8px;
+    font-size: 12px;
+    border-radius: 4px;
+  }
+
+  .mobile-input-container .country-code {
+    padding: 7px 8px;
+    font-size: 12px;
+  }
+
+  .mobile-input-container .mobile-input {
+    padding: 7px 8px;
+    font-size: 12px;
+  }
+
+  .password-input {
+    padding: 7px 30px 7px 8px;
+    font-size: 12px;
+  }
+
+  .password-toggle {
+    right: 6px;
+    padding: 2px;
+  }
+
+  .password-toggle svg {
+    width: 16px;
+    height: 16px;
   }
 
   .member-card {
-    padding: 12px;
+    padding: 8px;
+    border-radius: 4px;
   }
 
   .member-card h4 {
-    font-size: 14px;
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .password-requirements {
+    padding: 6px;
+    margin-top: 6px;
+  }
+
+  .password-requirements h4 {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  .password-requirements li {
+    font-size: 10px;
+    margin-bottom: 3px;
+  }
+
+  .nav-button {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  /* Welcome step mobile styles */
+  .welcome-step {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .welcome-content {
+    max-width: 100%;
+  }
+
+  .welcome-icon {
+    margin-bottom: 1rem;
+  }
+
+  .welcome-icon svg {
+    width: 60px;
+    height: 60px;
+  }
+
+  .welcome-title {
+    font-size: 1.5rem;
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+  }
+
+  .welcome-description {
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
+    line-height: 1.4;
+    padding: 0 0.5rem;
+  }
+
+  .welcome-features {
+    gap: 0.6rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .feature-item {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+  }
+
+  .feature-icon {
+    font-size: 1.2rem;
+  }
+
+  .start-button {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    min-width: 140px;
+  }
+
+  .login-option {
+    gap: 0.25rem;
+    font-size: 0.8rem;
+  }
+
+  .success-step {
+    padding: 0.75rem;
+  }
+
+  .success-icon {
+    margin-bottom: 16px;
+  }
+
+  .success-icon svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .success-step h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+
+  .success-description {
+    font-size: 12px;
+    margin-bottom: 14px;
+    max-width: 280px;
+  }
+
+  .team-summary {
+    padding: 10px;
+    margin-bottom: 14px;
+    max-width: 280px;
+  }
+
+  .team-summary h4 {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .team-summary p {
+    font-size: 11px;
+    margin-bottom: 4px;
   }
 }
 
@@ -711,11 +1231,326 @@
   }
 
   .members-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 5fr);
     gap: 20px;
   }
 
   .form-row {
     gap: 20px;
+  }
+}
+
+/* Desktop specific optimizations - Override smaller sizes for PC */
+@media (min-width: 769px) {
+  .register-container {
+    max-height: 620px;
+  }
+
+  .step-info-panel {
+    padding: 1.5rem;
+  }
+
+  .form-panel {
+    padding: 1rem 1.5rem;
+  }
+
+  /* PC-only header redesign */
+  .register-header {
+    position: absolute;
+    top: 2.4rem;
+    left: 1.5rem;
+    margin-bottom: 0;
+    z-index: 10;
+  }
+
+  .register-header h1 {
+    font-size: 22px;
+    margin-bottom: 2px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .register-header p {
+    font-size: 13px;
+    color: #666;
+    margin: 0;
+    font-weight: 500;
+  }
+
+  .current-step-indicator {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  .step-title {
+    font-size: 26px;
+    margin-bottom: 12px;
+  }
+
+  .step-description {
+    font-size: 16px;
+    margin-bottom: 18px;
+  }
+
+  .step-features li {
+    margin-bottom: 8px;
+    font-size: 15px;
+  }
+
+  .step-features li::before {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    font-size: 11px;
+  }
+
+  /* PC-only step progress redesign - move to top-right */
+  .step-progress {
+    position: absolute;
+    top: 2.4rem;
+    right: -5%;
+    z-index: 10;
+    padding: 8px 12px;
+    border-radius: 20px;
+  }
+
+  .progress-line {
+    display: none;
+  }
+
+  .progress-line-active {
+    display: none;
+  }
+
+  .step-dots {
+    width: auto;
+    gap: 30px;
+  }
+
+  .step-dot {
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid #e9ecef;
+    font-size: 12px;
+    font-weight: 700;
+    background: #f8f9fa;
+    position: relative;
+  }
+
+  .step-dot.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  }
+
+  .step-dot.completed {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+  }
+
+  /* Add step labels for PC */
+  .step-dot::after {
+    content: attr(data-label);
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+    white-space: nowrap;
+  }
+
+  .step-dot.active::after {
+    color: #667eea;
+  }
+
+  .step-dot.completed::after {
+    color: #28a745;
+  }
+
+  .step-content {
+    min-height: 220px;
+  }
+
+  .register-form {
+    margin-bottom: -10px;
+  }
+
+  .form-row {
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .form-group {
+    margin-bottom: 0;
+    gap: 3px;
+  }
+
+  .form-group label {
+    margin-bottom: 3px;
+    font-size: 15px;
+  }
+
+  .form-group input,
+  .form-group select {
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 15px;
+  }
+
+  .mobile-input-container .country-code {
+    padding: 10px 14px;
+    font-size: 15px;
+  }
+
+  .mobile-input-container .mobile-input {
+    padding: 10px 14px;
+    font-size: 15px;
+  }
+
+  /* Enhanced password inputs for desktop */
+  .password-input {
+    padding: 10px 45px 10px 14px;
+    font-size: 15px;
+  }
+
+  .password-toggle {
+    right: 12px;
+    padding: 4px;
+  }
+
+  .members-grid {
+    gap: 10px;
+  }
+
+  .member-card {
+    padding: 12px;
+    border-radius: 6px;
+  }
+
+  .member-card h4 {
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+
+  .member-card .form-row {
+    margin-bottom: 6px;
+  }
+
+  .password-requirements {
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 8px;
+  }
+
+  .password-requirements h4 {
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+
+  .password-requirements li {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .form-navigation {
+    margin-top: 1rem;
+    padding-top: 0.6rem;
+  }
+
+  .nav-button {
+    padding: 12px 24px;
+    font-size: 15px;
+    border-radius: 6px;
+    min-width: 110px;
+  }
+
+  .success-icon svg {
+    width: 56px;
+    height: 56px;
+  }
+
+  .success-step h3 {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+
+  .success-description {
+    font-size: 16px;
+    margin-bottom: 18px;
+    max-width: 350px;
+  }
+
+  .team-summary {
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 18px;
+    max-width: 350px;
+  }
+
+  .team-summary h4 {
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+
+  .team-summary p {
+    margin-bottom: 6px;
+    font-size: 15px;
+  }
+
+  .final-actions {
+    gap: 12px;
+  }
+
+  .login-link {
+    font-size: 15px;
+    padding: 12px 24px;
+    border-radius: 6px;
+  }
+
+  /* Welcome step desktop styles */
+  .welcome-step {
+    padding: 1.5rem;
+  }
+
+  .welcome-title {
+    font-size: 2.6rem;
+  }
+
+  .welcome-description {
+    font-size: 1.2rem;
+    margin-bottom: 1.8rem;
+  }
+
+  .welcome-features {
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-bottom: 2rem;
+  }
+
+  .feature-item {
+    padding: 0.8rem 1.2rem;
+    font-size: 1rem;
+  }
+
+  .feature-icon {
+    font-size: 1.4rem;
+  }
+
+  .start-button {
+    padding: 1rem 2.2rem;
+    font-size: 1.1rem;
+  }
+
+  .login-option {
+    font-size: 1rem;
   }
 }
