@@ -10,7 +10,14 @@ import {
   getAnnouncements,
   addAnnouncement,
   updateAnnouncement,
-  deleteAnnouncement
+  deleteAnnouncement,
+  getGalleryData,
+  updateGalleryData,
+  getDomeGalleryImages,
+  updateDomeGalleryImages,
+  uploadDomeGalleryImage,
+  getStoredDomeGalleryImages,
+  deleteStoredDomeGalleryImage
 } from '../services/firebase';
 import ScheduleAdmin from './ScheduleAdmin';
 import * as XLSX from 'xlsx';
@@ -44,6 +51,21 @@ function Management() {
     type: 'info' // info, event, update, warning
   });
   
+  // Gallery state
+  const [galleryData, setGalleryData] = useState({
+    driveLink: '',
+    linkTitle: 'View More Photos',
+    linkDescription: 'Access our complete photo collection on Google Drive',
+    linkEnabled: true
+  });
+  
+  // Dome Gallery state
+  const [domeImages, setDomeImages] = useState([]);
+  const [storedImages, setStoredImages] = useState([]);
+  const [showStoredImages, setShowStoredImages] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [imageSourceMode, setImageSourceMode] = useState('firebase'); // 'firebase' or 'manual'
+  
   // Submissions state
   const [submissionsData, setSubmissionsData] = useState([]);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
@@ -68,6 +90,9 @@ function Management() {
     fetchAnnouncements();
     fetchSubmissionsData();
     fetchScheduleData();
+    fetchGalleryData();
+    fetchDomeGalleryImages();
+    fetchStoredImages();
 
     // Handle window resize for responsive design
     const handleResize = () => {
@@ -146,6 +171,43 @@ function Management() {
     }
   };
 
+  const fetchGalleryData = async () => {
+    try {
+      const result = await getGalleryData();
+      if (result.success && result.data) {
+        setGalleryData(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching gallery data:', error);
+    }
+  };
+
+  const fetchDomeGalleryImages = async () => {
+    try {
+      const result = await getDomeGalleryImages();
+      if (result.success && result.data && result.data.images) {
+        setDomeImages(result.data.images);
+      } else {
+        // If no images configured, set empty array
+        setDomeImages([]);
+      }
+    } catch (error) {
+      console.error('Error fetching dome gallery images:', error);
+      setDomeImages([]);
+    }
+  };
+
+  const fetchStoredImages = async () => {
+    try {
+      const result = await getStoredDomeGalleryImages();
+      if (result.success) {
+        setStoredImages(result.images);
+      }
+    } catch (error) {
+      console.error('Error fetching stored images:', error);
+    }
+  };
+
   const handleCountdownUpdate = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -162,6 +224,150 @@ function Management() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGalleryUpdate = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const result = await updateGalleryData(galleryData);
+      if (result.success) {
+        alert('Gallery settings updated successfully!');
+      } else {
+        alert('Error: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error updating gallery settings:', error);
+      alert('Error updating gallery settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDomeImagesUpdate = async () => {
+    setLoading(true);
+    try {
+      const result = await updateDomeGalleryImages(domeImages);
+      if (result.success) {
+        alert('Dome gallery images updated successfully!');
+      } else {
+        alert('Error: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error updating dome gallery images:', error);
+      alert('Error updating dome gallery images');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addDomeImage = () => {
+    if (domeImages.length < 30) {
+      setDomeImages([...domeImages, { src: '', alt: '' }]);
+    } else {
+      alert('Maximum 30 images allowed!');
+    }
+  };
+
+  const removeDomeImage = (index) => {
+    const newImages = domeImages.filter((_, i) => i !== index);
+    setDomeImages(newImages);
+  };
+
+  const addDefaultImages = () => {
+    const defaultImages = [
+      { src: 'logo192.png', alt: 'Abstract art' },
+      { src: 'culogo.png', alt: 'Abstract art' },
+      { src: 'cs.jpg', alt: 'Abstract art' }
+    ];
+    setDomeImages(defaultImages);
+  };
+
+  const updateDomeImage = (index, field, value) => {
+    const newImages = [...domeImages];
+    newImages[index][field] = value;
+    setDomeImages(newImages);
+  };
+
+  const handleFileUpload = async (event) => {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+
+    setUploadingFile(true);
+    try {
+      const uploadPromises = files.map(async (file) => {
+        const timestamp = Date.now();
+        const fileName = `${timestamp}_${file.name}`;
+        return await uploadDomeGalleryImage(file, fileName);
+      });
+
+      const results = await Promise.all(uploadPromises);
+      const successCount = results.filter(r => r.success).length;
+      
+      if (successCount > 0) {
+        alert(`Successfully uploaded ${successCount} image(s)!`);
+        await fetchStoredImages(); // Refresh stored images list
+      }
+      
+      const failureCount = results.length - successCount;
+      if (failureCount > 0) {
+        alert(`Failed to upload ${failureCount} image(s). Please try again.`);
+      }
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      alert('Error uploading files. Please try again.');
+    } finally {
+      setUploadingFile(false);
+      // Clear the file input
+      event.target.value = '';
+    }
+  };
+
+  const addStoredImageToDome = (storedImage) => {
+    if (domeImages.length >= 30) {
+      alert('Maximum 30 images allowed!');
+      return;
+    }
+    
+    const newImage = {
+      src: storedImage.src,
+      alt: storedImage.alt
+    };
+    setDomeImages([...domeImages, newImage]);
+  };
+
+  const deleteStoredImage = async (fileName) => {
+    if (window.confirm('Are you sure you want to delete this image from storage?')) {
+      setLoading(true);
+      try {
+        const result = await deleteStoredDomeGalleryImage(fileName);
+        if (result.success) {
+          alert('Image deleted successfully!');
+          await fetchStoredImages();
+        } else {
+          alert('Error: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error deleting image:', error);
+        alert('Error deleting image');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const loadStoredImagesIntoDome = () => {
+    if (storedImages.length === 0) {
+      alert('No stored images available!');
+      return;
+    }
+
+    const imagesToAdd = storedImages.slice(0, 30); // Limit to 30 images
+    setDomeImages(imagesToAdd.map(img => ({
+      src: img.src,
+      alt: img.alt
+    })));
+    alert(`Loaded ${imagesToAdd.length} images from storage into dome gallery!`);
   };
 
   const handleLogout = () => {
@@ -828,7 +1034,6 @@ function Management() {
                     <thead>
                       <tr>
                         <th>Team Name</th>
-                        <th>Topic</th>
                         <th>Leader</th>
                         <th>Email</th>
                         <th>Academic Year</th>
@@ -842,7 +1047,6 @@ function Management() {
                       {filteredTeams.map((team) => (
                         <tr key={team.id}>
                           <td className="team-name">{team.teamName}</td>
-                          <td>{team.topicName || 'Not specified'}</td>
                           <td>{team.leaderName}</td>
                           <td>{team.leaderEmail}</td>
                           <td>{team.academicYear}</td>
@@ -1266,6 +1470,366 @@ function Management() {
             </div>
           </div>
         );
+      case 'gallery':
+        return (
+          <div className="tab-content">
+            <h3>Gallery Settings</h3>
+            <div className="gallery-settings-section">
+              <form onSubmit={handleGalleryUpdate} className="gallery-form">
+                <div className="form-group">
+                  <label htmlFor="gallery-drive-link">Google Drive Folder Link</label>
+                  <input
+                    type="url"
+                    id="gallery-drive-link"
+                    value={galleryData.driveLink}
+                    onChange={(e) => setGalleryData({...galleryData, driveLink: e.target.value})}
+                    placeholder="https://drive.google.com/drive/folders/YOUR_FOLDER_ID"
+                    required
+                  />
+                  <small className="help-text">
+                    Paste the full Google Drive folder link. Make sure the folder is publicly accessible.
+                  </small>
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="gallery-link-title">Link Title</label>
+                  <input
+                    type="text"
+                    id="gallery-link-title"
+                    value={galleryData.linkTitle}
+                    onChange={(e) => setGalleryData({...galleryData, linkTitle: e.target.value})}
+                    placeholder="View More Photos"
+                    required
+                    maxLength="50"
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="gallery-link-description">Link Description</label>
+                  <input
+                    type="text"
+                    id="gallery-link-description"
+                    value={galleryData.linkDescription}
+                    onChange={(e) => setGalleryData({...galleryData, linkDescription: e.target.value})}
+                    placeholder="Access our complete photo collection on Google Drive"
+                    required
+                    maxLength="100"
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <div className="toggle-field">
+                    <label className="toggle-label">
+                      <input
+                        type="checkbox"
+                        checked={galleryData.linkEnabled}
+                        onChange={(e) => setGalleryData({...galleryData, linkEnabled: e.target.checked})}
+                        className="toggle-checkbox"
+                      />
+                      <span className="toggle-slider"></span>
+                      <span className="toggle-text">
+                        {galleryData.linkEnabled ? 'Link is enabled' : 'Link is disabled'}
+                      </span>
+                    </label>
+                    <small className="help-text">
+                      {galleryData.linkEnabled 
+                        ? 'The Google Drive link will be visible and clickable on the gallery page.'
+                        : 'The Google Drive link will be hidden from visitors on the gallery page.'
+                      }
+                    </small>
+                  </div>
+                </div>
+                
+                <button type="submit" className="update-gallery-btn" disabled={loading}>
+                  {loading ? 'Updating...' : 'Update Gallery Settings'}
+                </button>
+              </form>
+              
+              <div className="dome-gallery-management">
+                <h4>Dome Gallery Images (Max 30)</h4>
+                <p className="dome-info">Manage the images displayed in the 3D dome gallery. You can add up to 30 images.</p>
+                
+                {/* Image Source Toggle */}
+                <div className="image-source-toggle">
+                  <h5>Image Source</h5>
+                  <div className="toggle-container">
+                    <button 
+                      type="button"
+                      className={`toggle-btn ${imageSourceMode === 'firebase' ? 'active' : ''}`}
+                      onClick={() => setImageSourceMode('firebase')}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        <polyline points="3.27,6.96 12,12.01 20.73,6.96"/>
+                        <line x1="12" y1="22.08" x2="12" y2="12"/>
+                      </svg>
+                      Firebase Storage
+                    </button>
+                    <button 
+                      type="button"
+                      className={`toggle-btn ${imageSourceMode === 'manual' ? 'active' : ''}`}
+                      onClick={() => setImageSourceMode('manual')}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M14.828 14.828a4 4 0 0 1-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+                      </svg>
+                      Manual URLs
+                    </button>
+                  </div>
+                  <p className="toggle-description">
+                    {imageSourceMode === 'firebase' 
+                      ? 'Upload and manage images using Firebase Storage - images are stored in the cloud.'
+                      : 'Manually enter image URLs - images are hosted externally.'
+                    }
+                  </p>
+                </div>
+
+                {/* Current Dome Images Display */}
+                <div className="current-dome-images">
+                  <h5>Current Dome Images ({domeImages.length}/30)</h5>
+                  {domeImages.length > 0 ? (
+                    <>
+                      <div className="current-images-grid">
+                        {domeImages.map((image, index) => (
+                          <div key={index} className="current-image-item">
+                            <div className="current-image-preview">
+                              <img src={image.src} alt={image.alt} onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }} />
+                              <div className="image-error" style={{ display: 'none' }}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                                  <polyline points="21,15 16,10 5,21"/>
+                                </svg>
+                                <span>Image not found</span>
+                              </div>
+                            </div>
+                            <div className="current-image-info">
+                              <span className="current-image-number">#{index + 1}</span>
+                              <span className="current-image-alt" title={image.alt}>
+                                {image.alt || 'No description'}
+                              </span>
+                              <button 
+                                type="button"
+                                className="remove-from-dome-btn"
+                                onClick={() => removeDomeImage(index)}
+                                title="Remove from dome"
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <line x1="18" y1="6" x2="6" y2="18"/>
+                                  <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Save All Changes Button */}
+                      <div className="save-dome-changes">
+                        <button 
+                          type="button" 
+                          className="save-all-dome-changes-btn" 
+                          onClick={handleDomeImagesUpdate}
+                          disabled={loading}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                            <polyline points="17,21 17,13 7,13 7,21"/>
+                            <polyline points="7,3 7,8 15,8"/>
+                          </svg>
+                          {loading ? 'Saving Changes...' : 'Save All Dome Gallery Changes'}
+                        </button>
+                        <p className="save-description">
+                          This will save all current dome gallery images and make them live on the website.
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="no-current-images">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        <polyline points="3.27,6.96 12,12.01 20.73,6.96"/>
+                        <line x1="12" y1="22.08" x2="12" y2="12"/>
+                      </svg>
+                      <p>No images configured for the dome gallery</p>
+                      <p>Use the {imageSourceMode === 'firebase' ? 'Firebase Storage' : 'Manual URLs'} section below to add images</p>
+                      {imageSourceMode === 'manual' && (
+                        <button 
+                          type="button" 
+                          className="add-default-images-btn"
+                          onClick={addDefaultImages}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                          </svg>
+                          Add Default Images
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Firebase Storage Section */}
+                {imageSourceMode === 'firebase' && (
+                <div className="storage-section">
+                  <h5>Firebase Storage</h5>
+                  <div className="storage-controls">
+                    <div className="upload-section">
+                      <input
+                        type="file"
+                        id="image-upload"
+                        multiple
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        style={{ display: 'none' }}
+                      />
+                      <label htmlFor="image-upload" className="upload-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                          <polyline points="7,10 12,15 17,10"/>
+                          <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        {uploadingFile ? 'Uploading...' : 'Upload Images'}
+                      </label>
+                      {storedImages.length > 0 && (
+                        <button 
+                          type="button" 
+                          className="load-stored-btn"
+                          onClick={loadStoredImagesIntoDome}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            <polyline points="3.27,6.96 12,12.01 20.73,6.96"/>
+                            <line x1="12" y1="22.08" x2="12" y2="12"/>
+                          </svg>
+                          Load All to Dome ({storedImages.length})
+                        </button>
+                      )}
+                    </div>
+                    <button 
+                      type="button" 
+                      className="toggle-stored-btn"
+                      onClick={() => setShowStoredImages(!showStoredImages)}
+                    >
+                      {showStoredImages ? 'Hide' : 'Show'} Stored Images ({storedImages.length})
+                    </button>
+                  </div>
+
+                  {/* Stored Images List */}
+                  {showStoredImages && (
+                    <div className="stored-images-container">
+                      {storedImages.length > 0 ? (
+                        <div className="stored-images-grid">
+                          {storedImages.map((image, index) => (
+                            <div key={index} className="stored-image-item">
+                              <div className="stored-image-preview">
+                                <img src={image.src} alt={image.alt} />
+                              </div>
+                              <div className="stored-image-info">
+                                <span className="image-name">{image.fileName}</span>
+                                <div className="stored-image-actions">
+                                  <button 
+                                    type="button"
+                                    className="use-image-btn"
+                                    onClick={() => addStoredImageToDome(image)}
+                                    disabled={domeImages.length >= 30}
+                                  >
+                                    Use
+                                  </button>
+                                  <button 
+                                    type="button"
+                                    className="delete-stored-btn"
+                                    onClick={() => deleteStoredImage(image.fileName)}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="no-stored-images">
+                          <p>No images stored in Firebase Storage yet.</p>
+                          <p>Upload some images to get started!</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                )}
+
+                {/* Manual Image Entry Section */}
+                {imageSourceMode === 'manual' && (
+                <div className="manual-entry-section">
+                  <h5>Manual Image Entry</h5>
+                  <div className="dome-images-header">
+                    <span className="images-count">{domeImages.length}/30 images</span>
+                    <button 
+                      type="button" 
+                      className="add-image-btn" 
+                      onClick={addDomeImage}
+                      disabled={domeImages.length >= 30}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                      Add Image URL
+                    </button>
+                  </div>
+
+                  <div className="dome-images-list">
+                    {domeImages.map((image, index) => (
+                      <div key={index} className="dome-image-item">
+                        <div className="dome-image-number">#{index + 1}</div>
+                        <div className="dome-image-fields">
+                          <div className="dome-field-group">
+                            <label>Image URL:</label>
+                            <input
+                              type="url"
+                              value={image.src}
+                              onChange={(e) => updateDomeImage(index, 'src', e.target.value)}
+                              placeholder="https://example.com/image.jpg"
+                              required
+                            />
+                          </div>
+                          <div className="dome-field-group">
+                            <label>Alt Text:</label>
+                            <input
+                              type="text"
+                              value={image.alt}
+                              onChange={(e) => updateDomeImage(index, 'alt', e.target.value)}
+                              placeholder="Image description"
+                              maxLength="100"
+                            />
+                          </div>
+                        </div>
+                        <button 
+                          type="button" 
+                          className="remove-image-btn"
+                          onClick={() => removeDomeImage(index)}
+                          disabled={domeImages.length <= 1}
+                          title="Remove image"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
       case 'settings':
         return (
           <div className="tab-content">
@@ -1396,6 +1960,18 @@ function Management() {
               </svg>
             </span>
             Announcements
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'gallery' ? 'active' : ''}`}
+            onClick={() => setActiveTab('gallery')}
+          >
+            <span className="tab-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m3 16 5-7 6 6.5m6.5 2.5L16 13l-4.286 6M14 10.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/>
+                <path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/>
+              </svg>
+            </span>
+            Gallery
           </button>
           <button 
             className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}

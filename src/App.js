@@ -7,6 +7,7 @@ import Schedule from './pages/Schedule';
 import About from './pages/About';
 import KeyMaps from './pages/KeyMaps';
 import Prizes from './pages/Prizes';
+import Gallery from './pages/Gallery';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -109,6 +110,7 @@ function AppContent() {
           <Route path="/about" element={<About />} />
           <Route path="/keymaps" element={<KeyMaps />} />
           <Route path="/prizes" element={<Prizes />} />
+          <Route path="/gallery" element={<Gallery />} />
           <Route 
             path="/dashboard" 
             element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" />} 

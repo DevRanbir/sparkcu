@@ -29,6 +29,14 @@ import {
   orderBy,
   serverTimestamp
 } from "firebase/firestore";
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  listAll,
+  deleteObject
+} from "firebase/storage";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -47,9 +55,10 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // Export Firebase services
-export { auth, db, analytics };
+export { auth, db, analytics, storage };
 
 // Check if team name already exists
 export const checkTeamNameExists = async (teamName) => {
@@ -1162,6 +1171,187 @@ export const getTeamByUserId = async (userId) => {
       success: false,
       error: error.code,
       message: 'Error fetching team data'
+    };
+  }
+};
+
+// Gallery management functions
+export const getGalleryData = async () => {
+  try {
+    const galleryRef = doc(db, 'settings', 'gallery');
+    const docSnap = await getDoc(galleryRef);
+    
+    if (docSnap.exists()) {
+      return {
+        success: true,
+        data: docSnap.data()
+      };
+    } else {
+      // Return default gallery data if none exists
+      return {
+        success: true,
+        data: {
+          driveLink: 'https://drive.google.com/drive/folders/YOUR_FOLDER_ID',
+          linkTitle: 'View More Photos',
+          linkDescription: 'Access our complete photo collection on Google Drive'
+        }
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching gallery data:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error fetching gallery data'
+    };
+  }
+};
+
+export const updateGalleryData = async (galleryData) => {
+  try {
+    const galleryRef = doc(db, 'settings', 'gallery');
+    await setDoc(galleryRef, {
+      ...galleryData,
+      updatedAt: serverTimestamp()
+    });
+    
+    return {
+      success: true,
+      message: 'Gallery settings updated successfully'
+    };
+  } catch (error) {
+    console.error('Error updating gallery data:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error updating gallery settings'
+    };
+  }
+};
+
+// Dome Gallery Images management functions
+export const getDomeGalleryImages = async () => {
+  try {
+    const domeGalleryRef = doc(db, 'settings', 'domeGallery');
+    const docSnap = await getDoc(domeGalleryRef);
+    
+    if (docSnap.exists()) {
+      return {
+        success: true,
+        data: docSnap.data()
+      };
+    } else {
+      // Return empty data if no configuration exists
+      return {
+        success: true,
+        data: {
+          images: []
+        }
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching dome gallery images:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error fetching dome gallery images'
+    };
+  }
+};
+
+export const updateDomeGalleryImages = async (imagesData) => {
+  try {
+    const domeGalleryRef = doc(db, 'settings', 'domeGallery');
+    await setDoc(domeGalleryRef, {
+      images: imagesData,
+      updatedAt: serverTimestamp()
+    });
+    
+    return {
+      success: true,
+      message: 'Dome gallery images updated successfully'
+    };
+  } catch (error) {
+    console.error('Error updating dome gallery images:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error updating dome gallery images'
+    };
+  }
+};
+
+// Firebase Storage functions for dome gallery images
+export const uploadDomeGalleryImage = async (file, fileName) => {
+  try {
+    const storageRef = ref(storage, `dome-gallery/${fileName}`);
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    
+    return {
+      success: true,
+      url: downloadURL,
+      message: 'Image uploaded successfully'
+    };
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error uploading image'
+    };
+  }
+};
+
+export const getStoredDomeGalleryImages = async () => {
+  try {
+    const storageRef = ref(storage, 'dome-gallery');
+    const result = await listAll(storageRef);
+    
+    const imagePromises = result.items.map(async (itemRef) => {
+      const url = await getDownloadURL(itemRef);
+      const name = itemRef.name;
+      return {
+        src: url,
+        alt: name.replace(/\.[^/.]+$/, ""), // Remove file extension for alt text
+        fileName: name,
+        isFromStorage: true
+      };
+    });
+    
+    const images = await Promise.all(imagePromises);
+    
+    return {
+      success: true,
+      images: images,
+      message: 'Images retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting stored images:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error retrieving stored images',
+      images: []
+    };
+  }
+};
+
+export const deleteStoredDomeGalleryImage = async (fileName) => {
+  try {
+    const storageRef = ref(storage, `dome-gallery/${fileName}`);
+    await deleteObject(storageRef);
+    
+    return {
+      success: true,
+      message: 'Image deleted successfully'
+    };
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error deleting image'
     };
   }
 };
