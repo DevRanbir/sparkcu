@@ -8,6 +8,7 @@ import About from './pages/About';
 import KeyMaps from './pages/KeyMaps';
 import Prizes from './pages/Prizes';
 import Gallery from './pages/Gallery';
+import Result from './pages/Result';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -17,13 +18,27 @@ import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { logoutUser, logoutAdmin } from './services/firebase';
+import { logoutUser, logoutAdmin, getPageVisibilitySettings } from './services/firebase';
 
 // Component to handle the main app content with routing
 function AppContent() {
   const { currentUser, adminSession } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [pageVisibilityLoading, setPageVisibilityLoading] = useState(true);
+  const [pageVisibilitySettings, setPageVisibilitySettings] = useState({
+    home: true,
+    rules: true,
+    schedule: true,
+    about: true,
+    keymaps: true,
+    prizes: true,
+    gallery: true,
+    result: true,
+    dashboard: true,
+    login: true,
+    register: true
+  });
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -36,6 +51,25 @@ function AppContent() {
   useEffect(() => {
     setIsAdminLoggedIn(!!adminSession);
   }, [adminSession]);
+
+  // Fetch page visibility settings
+  useEffect(() => {
+    const fetchPageVisibility = async () => {
+      try {
+        setPageVisibilityLoading(true);
+        const result = await getPageVisibilitySettings();
+        if (result.success) {
+          setPageVisibilitySettings(result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching page visibility settings:', error);
+      } finally {
+        setPageVisibilityLoading(false);
+      }
+    };
+    
+    fetchPageVisibility();
+  }, []);
 
   // Check for existing login on app load (for backward compatibility)
   useEffect(() => {
@@ -93,6 +127,36 @@ function AppContent() {
     navigate(`/${page}`);
   };
 
+  // Find the first available page as fallback
+  const getFirstAvailablePage = () => {
+    // Admins can always access home
+    if (isAdminLoggedIn) {
+      return 'home';
+    }
+    
+    const availablePages = ['home', 'rules', 'schedule', 'about', 'keymaps', 'prizes', 'gallery', 'result'];
+    for (const page of availablePages) {
+      if (pageVisibilitySettings[page]) {
+        return page;
+      }
+    }
+    return 'home'; // Ultimate fallback
+  };
+
+  const fallbackPage = getFirstAvailablePage();
+
+  // Show loading screen while page visibility settings are being fetched
+  if (pageVisibilityLoading) {
+    return (
+      <div className="App">
+        <div className="loading-screen">
+          <div className="loading-spinner"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="App">
       <Sidebar 
@@ -101,29 +165,31 @@ function AppContent() {
         isLoggedIn={isLoggedIn}
         isAdminLoggedIn={isAdminLoggedIn}
         onLogout={handleLogout}
+        pageVisibilitySettings={pageVisibilitySettings}
       />
       <div className="main-content">
         <Routes>
-          <Route path="/home" element={<Homepage />} />
-          <Route path="/rules" element={<Rules />} />
-          <Route path="/schedule" element={<Schedule />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/keymaps" element={<KeyMaps />} />
-          <Route path="/prizes" element={<Prizes />} />
-          <Route path="/gallery" element={<Gallery />} />
+          <Route path="/home" element={(pageVisibilitySettings.home || isAdminLoggedIn) ? <Homepage /> : <Navigate to={`/${fallbackPage}`} replace />} />
+          <Route path="/rules" element={(pageVisibilitySettings.rules || isAdminLoggedIn) ? <Rules /> : <Navigate to={`/${fallbackPage}`} replace />} />
+          <Route path="/schedule" element={(pageVisibilitySettings.schedule || isAdminLoggedIn) ? <Schedule /> : <Navigate to={`/${fallbackPage}`} replace />} />
+          <Route path="/about" element={(pageVisibilitySettings.about || isAdminLoggedIn) ? <About /> : <Navigate to={`/${fallbackPage}`} replace />} />
+          <Route path="/keymaps" element={(pageVisibilitySettings.keymaps || isAdminLoggedIn) ? <KeyMaps /> : <Navigate to={`/${fallbackPage}`} replace />} />
+          <Route path="/prizes" element={(pageVisibilitySettings.prizes || isAdminLoggedIn) ? <Prizes /> : <Navigate to={`/${fallbackPage}`} replace />} />
+          <Route path="/gallery" element={(pageVisibilitySettings.gallery || isAdminLoggedIn) ? <Gallery /> : <Navigate to={`/${fallbackPage}`} replace />} />
+          <Route path="/result" element={(pageVisibilitySettings.result || isAdminLoggedIn) ? <Result /> : <Navigate to={`/${fallbackPage}`} replace />} />
           <Route 
             path="/dashboard" 
-            element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" />} 
+            element={(isLoggedIn && (pageVisibilitySettings.dashboard || isAdminLoggedIn)) ? <Dashboard /> : <Navigate to={pageVisibilitySettings.login ? "/login" : `/${fallbackPage}`} replace />} 
           />
           <Route 
             path="/management" 
-            element={isAdminLoggedIn ? <Management /> : <Navigate to="/admin" />} 
+            element={isAdminLoggedIn ? <Management /> : <Navigate to="/admin" replace />} 
           />
-          <Route path="/login" element={<Login onLogin={handleLogin} />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={(pageVisibilitySettings.login || isAdminLoggedIn) ? <Login onLogin={handleLogin} /> : <Navigate to={`/${fallbackPage}`} replace />} />
+          <Route path="/register" element={(pageVisibilitySettings.register || isAdminLoggedIn) ? <Register /> : <Navigate to={`/${fallbackPage}`} replace />} />
           <Route path="/admin" element={<Admin />} />
-          <Route path="/" element={<Navigate to="/home" />} />
-          <Route path="*" element={<Navigate to="/home" />} />
+          <Route path="/" element={<Navigate to={`/${fallbackPage}`} replace />} />
+          <Route path="*" element={<Navigate to={`/${fallbackPage}`} replace />} />
         </Routes>
       </div>
       <Footer />

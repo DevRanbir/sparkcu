@@ -1,0 +1,382 @@
+/* Result Page - Minimal and Smooth Design */
+.result-page {
+  min-height: 100vh;
+  background-size: 30px 30px;
+  padding: 1.2rem;
+  padding-top: 3.5rem;
+  margin-left: 5rem ;
+}
+
+.result-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.result-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.result-header h1 {
+  font-size: 2rem;
+  font-weight: 400;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.4rem;
+  letter-spacing: 0.2px;
+}
+
+.result-header p {
+  font-size: 1rem;
+  color: #666;
+  margin: 0;
+  font-weight: 400;
+}
+
+.result-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  color: black;
+}
+
+.result-placeholder {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  max-width: 500px;
+  width: 100%;
+}
+
+.result-placeholder:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.result-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.result-placeholder h2 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.result-placeholder p {
+  font-size: 1rem;
+  color: #666;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Winners Section */
+.winners-section {
+  min-height: 100vh;
+  padding: 2rem;
+  background-size: 30px 30px;
+  margin-top: -35rem;
+}
+
+.winners-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 25rem;
+}
+
+.winners-header {
+  margin-bottom: 1rem;
+}
+
+.winners-title {
+  font-size: 6rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.winners-subtitle {
+  font-size: 1.2rem;
+  color: #666;
+  margin: 0;
+  font-weight: 400;
+  margin-left: 5px;
+}
+
+.winners-table-container {
+  width: 100%;
+  border-radius: 20px;
+  padding: 2rem;
+  border: 2px solid black;
+  transition: all 0.3s ease;
+}
+
+.winners-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+
+.winners-table th {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 1.2rem;
+  font-weight: 600;
+  padding: 1.5rem 1rem;
+  text-align: left;
+  border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.winners-table td {
+  padding: 1.2rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 1rem;
+  color: #333;
+  transition: all 0.3s ease;
+}
+
+.winners-table tbody tr {
+  transition: all 0.3s ease;
+}
+
+.winners-table tbody tr:hover {
+  background: rgba(102, 126, 234, 0.05);
+  transform: scale(1.01);
+}
+
+.position-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-weight: 600;
+}
+
+.position-number {
+  font-size: 1.2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.medal {
+  font-size: 1.5rem;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-5px);
+  }
+  60% {
+    transform: translateY(-3px);
+  }
+}
+
+.team-name {
+  font-weight: 500;
+  font-size: 1.1rem;
+}
+
+.score {
+  font-weight: 600;
+  font-size: 1.1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Special styling for top 3 positions */
+.position-1 {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent);
+}
+
+.position-2 {
+  background: linear-gradient(90deg, rgba(192, 192, 192, 0.1), transparent);
+}
+
+.position-3 {
+  background: linear-gradient(90deg, rgba(205, 127, 50, 0.1), transparent);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .result-page {
+    padding: 1rem;
+    padding-top: 3rem;
+  }
+  
+  .result-header h1 {
+    font-size: 1.7rem;
+  }
+  
+  .result-placeholder {
+    padding: 2rem 1.5rem;
+    margin: 0 1rem;
+  }
+  
+  .result-icon {
+    font-size: 3rem;
+  }
+  
+  .result-placeholder h2 {
+    font-size: 1.3rem;
+  }
+  
+  .result-placeholder p {
+    font-size: 0.9rem;
+  }
+
+  /* Winners section mobile */
+  .winners-section {
+    padding: 1rem;
+    margin-top: 80vh;
+  }
+  
+  .winners-title {
+    font-size: 2.5rem;
+  }
+  
+  .winners-subtitle {
+    font-size: 1rem;
+  }
+  
+  .winners-table-container {
+    padding: 1.5rem;
+    overflow-x: auto;
+  }
+  
+  .winners-table th {
+    font-size: 1rem;
+    padding: 1rem 0.8rem;
+  }
+  
+  .winners-table td {
+    padding: 1rem 0.8rem;
+    font-size: 0.9rem;
+  }
+  
+  .position-number {
+    font-size: 1rem;
+  }
+  
+  .medal {
+    font-size: 1.2rem;
+  }
+  
+  .team-name {
+    font-size: 1rem;
+  }
+  
+  .score {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .result-page {
+    padding: 0.8rem;
+    padding-top: 2.5rem;
+  }
+  
+  .result-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .result-header p {
+    font-size: 0.9rem;
+  }
+  
+  .result-placeholder {
+    padding: 1.5rem 1rem;
+  }
+  
+  .result-icon {
+    font-size: 2.5rem;
+  }
+  
+  .result-placeholder h2 {
+    font-size: 1.2rem;
+  }
+
+  /* Winners section mobile small */
+  .winners-section {
+    padding: 0.8rem;
+    margin-top: 70vh;
+  }
+  
+  .winners-title {
+    font-size: 2rem;
+  }
+  
+  .winners-subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .winners-table-container {
+    padding: 1rem;
+  }
+  
+  .winners-table th {
+    font-size: 0.9rem;
+    padding: 0.8rem 0.5rem;
+  }
+  
+  .winners-table td {
+    padding: 0.8rem 0.5rem;
+    font-size: 0.8rem;
+  }
+  
+  .position-cell {
+    gap: 0.5rem;
+  }
+  
+  .position-number {
+    font-size: 0.9rem;
+  }
+  
+  .medal {
+    font-size: 1rem;
+  }
+}

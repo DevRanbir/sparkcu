@@ -17,7 +17,16 @@ import {
   updateDomeGalleryImages,
   uploadDomeGalleryImage,
   getStoredDomeGalleryImages,
-  deleteStoredDomeGalleryImage
+  deleteStoredDomeGalleryImage,
+  getPageVisibilitySettings,
+  updatePageVisibilitySettings,
+  getNotifications,
+  addNotifications,
+  deleteNotification,
+  getTeamNotificationHistory,
+  clearTeamNotifications,
+  addDownloadHistory,
+  getDownloadHistory
 } from '../services/firebase';
 import ScheduleAdmin from './ScheduleAdmin';
 import * as XLSX from 'xlsx';
@@ -74,6 +83,28 @@ function Management() {
   const [submissionFilter, setSubmissionFilter] = useState('all');
   const [scheduleData, setScheduleData] = useState([]);
   
+  // Page Visibility state
+  const [pageVisibilitySettings, setPageVisibilitySettings] = useState({
+    home: true,
+    rules: true,
+    schedule: true,
+    about: true,
+    keymaps: true,
+    prizes: true,
+    gallery: true,
+    result: true,
+    dashboard: true,
+    login: true,
+    register: true
+  });
+  const [updatingPageVisibility, setUpdatingPageVisibility] = useState(false);
+  
+  // Notifications state
+  const [notifications, setNotifications] = useState([]);
+  const [uploadingNotifications, setUploadingNotifications] = useState(false);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const [downloadHistory, setDownloadHistory] = useState([]);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -93,6 +124,10 @@ function Management() {
     fetchGalleryData();
     fetchDomeGalleryImages();
     fetchStoredImages();
+    fetchPageVisibilitySettings();
+    fetchNotifications();
+    fetchDownloadHistory();
+    fetchDownloadHistory();
 
     // Handle window resize for responsive design
     const handleResize = () => {
@@ -205,6 +240,40 @@ function Management() {
       }
     } catch (error) {
       console.error('Error fetching stored images:', error);
+    }
+  };
+
+  const fetchPageVisibilitySettings = async () => {
+    try {
+      const result = await getPageVisibilitySettings();
+      if (result.success) {
+        setPageVisibilitySettings(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching page visibility settings:', error);
+    }
+  };
+
+  const handlePageVisibilityUpdate = async (pageName, isVisible) => {
+    setUpdatingPageVisibility(true);
+    try {
+      const updatedSettings = {
+        ...pageVisibilitySettings,
+        [pageName]: isVisible
+      };
+      
+      const result = await updatePageVisibilitySettings(updatedSettings);
+      if (result.success) {
+        setPageVisibilitySettings(updatedSettings);
+        // You could add a toast notification here
+      } else {
+        alert('Error: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error updating page visibility:', error);
+      alert('Error updating page visibility');
+    } finally {
+      setUpdatingPageVisibility(false);
     }
   };
 
@@ -794,6 +863,289 @@ function Management() {
       alert('Error generating Excel report. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Notification functions
+  const fetchNotifications = async () => {
+    try {
+      const result = await getNotifications();
+      if (result.success) {
+        setNotifications(result.notifications);
+      } else {
+        console.error('Failed to fetch notifications:', result.message);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  const handleNotificationFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.xlsx') && !file.name.toLowerCase().endsWith('.xls')) {
+      alert('Please upload an Excel file (.xlsx or .xls)');
+      return;
+    }
+
+    setUploadingNotifications(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+          // Validate the Excel structure
+          if (jsonData.length === 0) {
+            alert('Excel file is empty');
+            return;
+          }
+
+          // Check for required columns (case-insensitive)
+          const firstRow = jsonData[0];
+          const headers = Object.keys(firstRow).map(h => h.toLowerCase());
+          
+          if (!headers.includes('team name') && !headers.includes('teamname')) {
+            alert('Excel file must contain a "Team Name" column');
+            return;
+          }
+
+          if (!headers.includes('notification')) {
+            alert('Excel file must contain a "Notification" column');
+            return;
+          }
+
+          // Get registered team names for validation
+          const registeredTeamNames = teams.map(team => team.teamName.toLowerCase());
+          
+          // Process notifications data
+          const notificationsToAdd = [];
+          const invalidTeams = [];
+          const emptyNotifications = [];
+          
+          jsonData.forEach((row, index) => {
+            const teamName = (row['Team Name'] || row['TeamName'] || row['team name'] || row['teamname'] || '').toString().trim();
+            const notification = (row['Notification'] || row['notification'] || '').toString().trim();
+            
+            if (!teamName) {
+              emptyNotifications.push(`Row ${index + 2}: Missing team name`);
+              return;
+            }
+            
+            if (!notification) {
+              emptyNotifications.push(`Row ${index + 2}: Missing notification for ${teamName}`);
+              return;
+            }
+            
+            // Check if team is registered
+            if (!registeredTeamNames.includes(teamName.toLowerCase())) {
+              invalidTeams.push(teamName);
+              return;
+            }
+            
+            // Find the correct case team name from registered teams
+            const correctTeamName = teams.find(team => 
+              team.teamName.toLowerCase() === teamName.toLowerCase()
+            )?.teamName || teamName;
+            
+            notificationsToAdd.push({
+              teamName: correctTeamName,
+              notification: notification
+            });
+          });
+
+          // Show validation results
+          let validationMessage = '';
+          if (invalidTeams.length > 0) {
+            validationMessage += `⚠️ Unregistered teams found (will be skipped):\n${invalidTeams.join(', ')}\n\n`;
+          }
+          if (emptyNotifications.length > 0) {
+            validationMessage += `⚠️ Empty data found:\n${emptyNotifications.join('\n')}\n\n`;
+          }
+          
+          if (notificationsToAdd.length === 0) {
+            alert('No valid notifications found in the Excel file.\n\n' + validationMessage);
+            return;
+          }
+
+          // Show confirmation with validation results
+          const confirmMessage = `${validationMessage}Found ${notificationsToAdd.length} valid notifications.\n\nDo you want to proceed with uploading?`;
+          
+          if (validationMessage && !window.confirm(confirmMessage)) {
+            return;
+          }
+
+          // Upload to Firebase
+          const result = await addNotifications(notificationsToAdd);
+          if (result.success) {
+            let successMessage = `✅ ${notificationsToAdd.length} notifications uploaded successfully!`;
+            if (invalidTeams.length > 0) {
+              successMessage += `\n\n⚠️ ${invalidTeams.length} unregistered teams were skipped.`;
+            }
+            alert(successMessage);
+            fetchNotifications(); // Refresh the notifications list
+          } else {
+            alert('Error uploading notifications: ' + result.message);
+          }
+        } catch (parseError) {
+          console.error('Error parsing Excel file:', parseError);
+          alert('Error parsing Excel file. Please check the format.');
+        } finally {
+          setUploadingNotifications(false);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      alert('Error reading file');
+      setUploadingNotifications(false);
+    }
+
+    // Reset file input
+    event.target.value = '';
+  };
+
+  const downloadNotificationTemplate = async () => {
+    setDownloadingTemplate(true);
+    try {
+      // Get all registered team names
+      const registeredTeamNames = teams.map(team => team.teamName).sort();
+      
+      // Create template data with real team names and empty notification column
+      const templateData = registeredTeamNames.map(teamName => ({
+        'Team Name': teamName,
+        'Notification': ''
+      }));
+
+      // If no teams are registered, add example data
+      if (templateData.length === 0) {
+        templateData.push(
+          { 'Team Name': 'Example Team 1', 'Notification': 'Your submission has been received successfully.' },
+          { 'Team Name': 'Example Team 2', 'Notification': 'Please update your presentation link by tomorrow.' },
+          { 'Team Name': 'Example Team 3', 'Notification': 'Congratulations! You have been selected for the next round.' }
+        );
+      }
+
+      // Include existing notifications as history with download tracking
+      const existingNotifications = notifications.map(notif => ({
+        'Team Name': notif.teamName,
+        'Notification': notif.notification,
+        'Created Date': notif.createdAt ? 
+          (notif.createdAt.toDate ? 
+            notif.createdAt.toDate().toLocaleString() : 
+            new Date(notif.createdAt).toLocaleString()
+          ) : 'N/A',
+        'Download History': notif.downloadHistory ? 
+          notif.downloadHistory.map(date => new Date(date).toLocaleString()).join('; ') : 
+          'Not downloaded yet'
+      }));
+
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+      
+      // Add template sheet with real team names
+      const templateWorksheet = XLSX.utils.json_to_sheet(templateData);
+      XLSX.utils.book_append_sheet(workbook, templateWorksheet, 'Template');
+      
+      // Add registered teams info sheet
+      const teamsInfoData = teams.map(team => ({
+        'Team Name': team.teamName,
+        'Leader Name': team.leaderName,
+        'Leader Email': team.leaderEmail,
+        'Academic Year': team.academicYear,
+        'Members Count': team.members ? team.members.length : 0,
+        'Registration Date': team.createdAt ? 
+          (team.createdAt.toDate ? 
+            team.createdAt.toDate().toLocaleDateString() : 
+            new Date(team.createdAt).toLocaleDateString()
+          ) : 'N/A',
+        'Email Verified': team.emailVerified ? 'Yes' : 'No'
+      }));
+      
+      if (teamsInfoData.length > 0) {
+        const teamsInfoWorksheet = XLSX.utils.json_to_sheet(teamsInfoData);
+        XLSX.utils.book_append_sheet(workbook, teamsInfoWorksheet, 'Teams Info');
+      }
+      
+      // Add history sheet if there are existing notifications
+      if (existingNotifications.length > 0) {
+        const historyWorksheet = XLSX.utils.json_to_sheet(existingNotifications);
+        XLSX.utils.book_append_sheet(workbook, historyWorksheet, 'History');
+      }
+
+      // Generate filename with timestamp
+      const currentDate = new Date().toISOString().split('T')[0];
+      const currentTime = new Date().toTimeString().split(' ')[0].replace(/:/g, '-');
+      const filename = `Notifications_Template_${currentDate}_${currentTime}.xlsx`;
+
+      // Download
+      XLSX.writeFile(workbook, filename);
+      
+      // Track download in Firebase (update existing notifications with download timestamp)
+      const downloadTimestamp = new Date().toISOString();
+      await updateNotificationDownloadHistory(downloadTimestamp);
+      
+      alert(`Template downloaded successfully!\nFile: ${filename}\nContains ${registeredTeamNames.length} registered teams`);
+    } catch (error) {
+      console.error('Error generating template:', error);
+      alert('Error generating template');
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId) => {
+    if (window.confirm('Are you sure you want to delete this notification?')) {
+      setLoading(true);
+      try {
+        const result = await deleteNotification(notificationId);
+        if (result.success) {
+          alert('Notification deleted successfully!');
+          fetchNotifications(); // Refresh the list
+        } else {
+          alert('Error deleting notification: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error deleting notification:', error);
+        alert('Error deleting notification');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const updateNotificationDownloadHistory = async (downloadTimestamp) => {
+    try {
+      const downloadData = {
+        adminId: adminData?.adminId || 'admin',
+        teamCount: teams.length,
+        notificationCount: notifications.length,
+        filename: `Notifications_Template_${downloadTimestamp.split('T')[0]}_${downloadTimestamp.split('T')[1].substring(0, 8).replace(/:/g, '-')}.xlsx`,
+        registeredTeams: teams.map(team => team.teamName)
+      };
+      
+      await addDownloadHistory(downloadData);
+      fetchDownloadHistory(); // Refresh download history
+    } catch (error) {
+      console.error('Error tracking download history:', error);
+    }
+  };
+
+  const fetchDownloadHistory = async () => {
+    try {
+      const result = await getDownloadHistory();
+      if (result.success) {
+        setDownloadHistory(result.downloadHistory);
+      } else {
+        console.error('Failed to fetch download history:', result.message);
+      }
+    } catch (error) {
+      console.error('Error fetching download history:', error);
     }
   };
 
@@ -1470,6 +1822,257 @@ function Management() {
             </div>
           </div>
         );
+      case 'notifiers':
+        return (
+          <div className="tab-content">
+            <h3>Team Notifications Management</h3>
+            <div className="notifiers-section">
+              <div className="notifiers-controls">
+                <div className="upload-section">
+                  <h4>Upload Notifications from Excel</h4>
+                  <p className="section-description">
+                    Upload an Excel file with columns: "Team Name" and "Notification". 
+                    Only registered team names will be accepted. Invalid teams will be skipped.
+                  </p>
+                  <div className="file-upload-container">
+                    <input
+                      type="file"
+                      id="notification-file-upload"
+                      accept=".xlsx,.xls"
+                      onChange={handleNotificationFileUpload}
+                      style={{ display: 'none' }}
+                    />
+                    <button
+                      className="upload-btn"
+                      onClick={() => document.getElementById('notification-file-upload').click()}
+                      disabled={uploadingNotifications}
+                    >
+                      {uploadingNotifications ? (
+                        <>
+                          <span className="spinner"></span>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7,10 12,15 17,10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                          </svg>
+                          Upload Excel File
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="download-section">
+                  <h4>Download Template & History</h4>
+                  <p className="section-description">
+                    Download Excel template with all registered team names pre-filled. 
+                    Includes team info, notification history, and download tracking.
+                  </p>
+                  <button
+                    className="download-btn"
+                    onClick={downloadNotificationTemplate}
+                    disabled={downloadingTemplate}
+                  >
+                    {downloadingTemplate ? (
+                      <>
+                        <span className="spinner"></span>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                          <polyline points="17,8 12,13 7,8"/>
+                          <line x1="12" y1="13" x2="12" y2="1"/>
+                        </svg>
+                        Download Template
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Notification Statistics */}
+              <div className="notification-stats">
+                <div className="stat-item">
+                  <h5>Total Teams</h5>
+                  <p className="stat-number">{teams.length}</p>
+                  <small className="stat-label">Registered teams</small>
+                </div>
+                <div className="stat-item">
+                  <h5>Total Notifications</h5>
+                  <p className="stat-number">{notifications.length}</p>
+                  <small className="stat-label">All notifications</small>
+                </div>
+                <div className="stat-item">
+                  <h5>Unread Notifications</h5>
+                  <p className="stat-number">{notifications.filter(n => !n.read).length}</p>
+                  <small className="stat-label">Pending read</small>
+                </div>
+                <div className="stat-item">
+                  <h5>Teams with Notifications</h5>
+                  <p className="stat-number">
+                    {new Set(notifications.map(n => n.teamName)).size}
+                  </p>
+                  <small className="stat-label">Unique teams</small>
+                </div>
+              </div>
+
+              <div className="notifications-list-section">
+                <div className="section-header">
+                  <h4>Current Notifications ({notifications.length})</h4>
+                  <button 
+                    className="refresh-btn"
+                    onClick={fetchNotifications}
+                    title="Refresh notifications"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="23,4 23,10 17,10"/>
+                      <polyline points="1,20 1,14 7,14"/>
+                      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                    </svg>
+                  </button>
+                </div>
+                
+                {notifications.length > 0 ? (
+                  <div className="notifications-table-container">
+                    <table className="notifications-table">
+                      <thead>
+                        <tr>
+                          <th>Team Name</th>
+                          <th>Notification</th>
+                          <th>Created Date</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {notifications.map((notification) => (
+                          <tr key={notification.id} className={notification.read ? 'read-notification' : 'unread-notification'}>
+                            <td className="team-name">
+                              {notification.teamName}
+                              <small className="team-info">
+                                {teams.find(team => team.teamName === notification.teamName)?.academicYear || 'N/A'}
+                              </small>
+                            </td>
+                            <td className="notification-text">
+                              {notification.notification}
+                              {notification.addedBy && (
+                                <small className="added-by">Added by: {notification.addedBy}</small>
+                              )}
+                            </td>
+                            <td className="created-date">
+                              {notification.createdAt ? 
+                                (notification.createdAt.toDate ? 
+                                  notification.createdAt.toDate().toLocaleString() : 
+                                  new Date(notification.createdAt).toLocaleString()
+                                ) : 'N/A'
+                              }
+                            </td>
+                            <td className="notification-status">
+                              <span className={`status-badge ${notification.read ? 'read' : 'unread'}`}>
+                                {notification.read ? 'Read' : 'Unread'}
+                              </span>
+                              {notification.readAt && (
+                                <small className="read-date">
+                                  Read: {notification.readAt.toDate ? 
+                                    notification.readAt.toDate().toLocaleDateString() : 
+                                    new Date(notification.readAt).toLocaleDateString()
+                                  }
+                                </small>
+                              )}
+                            </td>
+                            <td>
+                              <div className="action-buttons">
+                                <button 
+                                  className="delete-notification-btn"
+                                  onClick={() => handleDeleteNotification(notification.id)}
+                                  title="Delete notification"
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="3,6 5,6 21,6"/>
+                                    <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"/>
+                                    <line x1="10" y1="11" x2="10" y2="17"/>
+                                    <line x1="14" y1="11" x2="14" y2="17"/>
+                                  </svg>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="no-notifications">
+                    <p>No notifications found.</p>
+                    <small>Upload an Excel file to add team notifications.</small>
+                  </div>
+                )}
+              </div>
+
+              <div className="download-history-section">
+                <div className="section-header">
+                  <h4>Download History ({downloadHistory.length})</h4>
+                  <button 
+                    className="refresh-btn"
+                    onClick={fetchDownloadHistory}
+                    title="Refresh download history"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="23,4 23,10 17,10"/>
+                      <polyline points="1,20 1,14 7,14"/>
+                      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                    </svg>
+                  </button>
+                </div>
+                
+                {downloadHistory.length > 0 ? (
+                  <div className="download-history-table-container">
+                    <table className="download-history-table">
+                      <thead>
+                        <tr>
+                          <th>Download Date</th>
+                          <th>Downloaded By</th>
+                          <th>Team Count</th>
+                          <th>Notification Count</th>
+                          <th>Filename</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {downloadHistory.map((download) => (
+                          <tr key={download.id}>
+                            <td className="download-date">
+                              {download.downloadedAt ? 
+                                (download.downloadedAt.toDate ? 
+                                  download.downloadedAt.toDate().toLocaleString() : 
+                                  new Date(download.downloadedAt).toLocaleString()
+                                ) : 'N/A'
+                              }
+                            </td>
+                            <td className="downloaded-by">{download.downloadedBy || 'Admin'}</td>
+                            <td className="team-count">{download.teamCount || 0}</td>
+                            <td className="notification-count">{download.notificationCount || 0}</td>
+                            <td className="filename">{download.filename || 'N/A'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="no-download-history">
+                    <p>No download history found.</p>
+                    <small>Download history will appear here after you download templates.</small>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
       case 'gallery':
         return (
           <div className="tab-content">
@@ -1860,6 +2463,108 @@ function Management() {
             </div>
           </div>
         );
+      case 'pages':
+        return (
+          <div className="tab-content">
+            <h3>Page Visibility Management</h3>
+            <div className="management-section">
+              <div className="page-visibility-header">
+                <p>Control which pages are visible to users. Disabled pages will not appear in the navigation sidebar for regular users.</p>
+                <small><strong>Note:</strong> As an admin, you can access all pages regardless of these settings. Dashboard will always be visible to logged-in users. Login and Register pages control access to authentication.</small>
+              </div>
+              
+              <div className="page-visibility-grid">
+                {Object.entries(pageVisibilitySettings).map(([pageName, isVisible]) => {
+                  const pageDisplayNames = {
+                    home: 'Home',
+                    rules: 'Rules',
+                    schedule: 'Schedule',
+                    about: 'About',
+                    keymaps: 'Key Maps',
+                    prizes: 'Prizes',
+                    gallery: 'Gallery',
+                    result: 'Result',
+                    dashboard: 'Dashboard',
+                    login: 'Login',
+                    register: 'Register'
+                  };
+                  
+                  const pageDescriptions = {
+                    home: 'Main landing page with event information',
+                    rules: 'Competition rules and guidelines',
+                    schedule: 'Event timeline and schedule',
+                    about: 'About the event and organizers',
+                    keymaps: 'Important locations and key maps',
+                    prizes: 'Prize information and categories',
+                    gallery: 'Photo gallery from previous events',
+                    result: 'Competition results and announcements',
+                    dashboard: 'User dashboard (always visible when logged in)',
+                    login: 'User login page',
+                    register: 'User registration page'
+                  };
+                  
+                  return (
+                    <div key={pageName} className="page-visibility-card">
+                      <div className="page-info">
+                        <h4>{pageDisplayNames[pageName] || pageName}</h4>
+                        <p>{pageDescriptions[pageName] || 'Page description'}</p>
+                        <div className="page-status-container">
+                          <span className={`page-status ${isVisible ? 'visible' : 'hidden'}`}>
+                            {isVisible ? 'Visible to Users' : 'Hidden from Users'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="page-toggle">
+                        <label className="toggle-switch">
+                          <input
+                            type="checkbox"
+                            checked={isVisible}
+                            onChange={(e) => handlePageVisibilityUpdate(pageName, e.target.checked)}
+                            disabled={updatingPageVisibility || pageName === 'dashboard'}
+                            title={pageName === 'dashboard' ? 'Dashboard is always visible to logged-in users' : ''}
+                          />
+                          <span className="toggle-slider"></span>
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {updatingPageVisibility && (
+                <div className="updating-indicator">
+                  <p>Updating page visibility...</p>
+                </div>
+              )}
+              
+              <div className="page-visibility-actions">
+                <button 
+                  onClick={() => {
+                    const allVisible = Object.fromEntries(
+                      Object.keys(pageVisibilitySettings).map(key => [key, true])
+                    );
+                    Object.keys(allVisible).forEach(page => {
+                      if (page !== 'dashboard') { // Don't update dashboard
+                        handlePageVisibilityUpdate(page, true);
+                      }
+                    });
+                  }}
+                  disabled={updatingPageVisibility}
+                  className="action-btn show-all"
+                >
+                  Show All Pages
+                </button>
+                <button 
+                  onClick={fetchPageVisibilitySettings}
+                  disabled={updatingPageVisibility}
+                  className="action-btn refresh"
+                >
+                  Refresh Settings
+                </button>
+              </div>
+            </div>
+          </div>
+        );
       default:
         return null;
     }
@@ -1962,6 +2667,18 @@ function Management() {
             Announcements
           </button>
           <button 
+            className={`tab-btn ${activeTab === 'notifiers' ? 'active' : ''}`}
+            onClick={() => setActiveTab('notifiers')}
+          >
+            <span className="tab-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+              </svg>
+            </span>
+            Notifiers
+          </button>
+          <button 
             className={`tab-btn ${activeTab === 'gallery' ? 'active' : ''}`}
             onClick={() => setActiveTab('gallery')}
           >
@@ -1972,6 +2689,21 @@ function Management() {
               </svg>
             </span>
             Gallery
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'pages' ? 'active' : ''}`}
+            onClick={() => setActiveTab('pages')}
+          >
+            <span className="tab-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+                <line x1="9" y1="9" x2="10" y2="9"/>
+                <line x1="9" y1="13" x2="15" y2="13"/>
+                <line x1="9" y1="17" x2="15" y2="17"/>
+              </svg>
+            </span>
+            Pages
           </button>
           <button 
             className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}

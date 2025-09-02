@@ -1355,3 +1355,497 @@ export const deleteStoredDomeGalleryImage = async (fileName) => {
     };
   }
 };
+
+// Page Visibility Management Functions
+export const getPageVisibilitySettings = async () => {
+  try {
+    const docRef = doc(db, 'settings', 'pageVisibility');
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      return {
+        success: true,
+        data: docSnap.data(),
+        message: 'Page visibility settings retrieved successfully'
+      };
+    } else {
+      // Return default settings if none exist
+      const defaultSettings = {
+        home: true,
+        rules: true,
+        schedule: true,
+        about: true,
+        keymaps: true,
+        prizes: true,
+        gallery: true,
+        result: true,
+        dashboard: true, // Always visible for logged-in users
+        login: true,
+        register: true
+      };
+      
+      return {
+        success: true,
+        data: defaultSettings,
+        message: 'Default page visibility settings returned'
+      };
+    }
+  } catch (error) {
+    console.error('Error getting page visibility settings:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error retrieving page visibility settings'
+    };
+  }
+};
+
+export const updatePageVisibilitySettings = async (settings) => {
+  try {
+    const docRef = doc(db, 'settings', 'pageVisibility');
+    await setDoc(docRef, {
+      ...settings,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    
+    return {
+      success: true,
+      message: 'Page visibility settings updated successfully'
+    };
+  } catch (error) {
+    console.error('Error updating page visibility settings:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error updating page visibility settings'
+    };
+  }
+};
+
+// Notification Management Functions - Updated to store in team documents
+export const getNotifications = async () => {
+  try {
+    const teamsRef = collection(db, 'teams');
+    const querySnapshot = await getDocs(teamsRef);
+    
+    const allNotifications = [];
+    querySnapshot.forEach((doc) => {
+      const teamData = doc.data();
+      if (teamData.notifications && Array.isArray(teamData.notifications)) {
+        teamData.notifications.forEach((notification, index) => {
+          allNotifications.push({
+            id: `${doc.id}_${index}`,
+            teamId: doc.id,
+            teamName: teamData.teamName,
+            notificationIndex: index,
+            ...notification
+          });
+        });
+      }
+    });
+    
+    // Sort by creation date descending
+    allNotifications.sort((a, b) => {
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+      return dateB - dateA;
+    });
+    
+    return {
+      success: true,
+      notifications: allNotifications
+    };
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error fetching notifications'
+    };
+  }
+};
+
+export const addNotifications = async (notificationsData) => {
+  try {
+    const teamsRef = collection(db, 'teams');
+    const querySnapshot = await getDocs(teamsRef);
+    
+    // Create a map of team names to team documents
+    const teamMap = new Map();
+    querySnapshot.forEach((doc) => {
+      const teamData = doc.data();
+      teamMap.set(teamData.teamName, {
+        id: doc.id,
+        data: teamData
+      });
+    });
+    
+    const updatePromises = [];
+    let addedCount = 0;
+    let notFoundTeams = [];
+    const currentTime = new Date();
+    
+    for (const notification of notificationsData) {
+      const team = teamMap.get(notification.teamName);
+      if (team) {
+        const teamRef = doc(db, 'teams', team.id);
+        const existingNotifications = team.data.notifications || [];
+        
+        const newNotification = {
+          id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          notification: notification.notification,
+          createdAt: currentTime,
+          read: false,
+          addedBy: 'admin'
+        };
+        
+        const updatedNotifications = [...existingNotifications, newNotification];
+        
+        updatePromises.push(
+          updateDoc(teamRef, {
+            notifications: updatedNotifications,
+            lastNotificationUpdate: serverTimestamp()
+          })
+        );
+        addedCount++;
+      } else {
+        notFoundTeams.push(notification.teamName);
+      }
+    }
+    
+    await Promise.all(updatePromises);
+    
+    let message = `${addedCount} notifications added successfully`;
+    if (notFoundTeams.length > 0) {
+      message += `. Warning: ${notFoundTeams.length} team(s) not found: ${notFoundTeams.join(', ')}`;
+    }
+    
+    return {
+      success: true,
+      message: message,
+      addedCount: addedCount,
+      notFoundTeams: notFoundTeams
+    };
+  } catch (error) {
+    console.error('Error adding notifications:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error adding notifications'
+    };
+  }
+};
+
+export const deleteNotification = async (notificationId) => {
+  try {
+    // Parse the notification ID to get team ID and notification index
+    const [teamId, notificationIndex] = notificationId.split('_');
+    
+    const teamRef = doc(db, 'teams', teamId);
+    const teamDoc = await getDoc(teamRef);
+    
+    if (!teamDoc.exists()) {
+      return {
+        success: false,
+        message: 'Team not found'
+      };
+    }
+    
+    const teamData = teamDoc.data();
+    const notifications = teamData.notifications || [];
+    
+    if (notificationIndex >= notifications.length || notificationIndex < 0) {
+      return {
+        success: false,
+        message: 'Notification not found'
+      };
+    }
+    
+    // Remove the notification at the specified index
+    const updatedNotifications = notifications.filter((_, index) => index !== parseInt(notificationIndex));
+    
+    await updateDoc(teamRef, {
+      notifications: updatedNotifications,
+      lastNotificationUpdate: serverTimestamp()
+    });
+    
+    return {
+      success: true,
+      message: 'Notification deleted successfully'
+    };
+  } catch (error) {
+    console.error('Error deleting notification:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error deleting notification'
+    };
+  }
+};
+
+export const getUserNotifications = async (teamName) => {
+  try {
+    const teamsRef = collection(db, 'teams');
+    const q = query(teamsRef, where('teamName', '==', teamName));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return {
+        success: true,
+        notifications: [],
+        message: 'Team not found'
+      };
+    }
+    
+    const teamDoc = querySnapshot.docs[0];
+    const teamData = teamDoc.data();
+    const notifications = teamData.notifications || [];
+    
+    // Add IDs and sort by creation date descending
+    const notificationsWithIds = notifications.map((notification, index) => ({
+      id: `${teamDoc.id}_${index}`,
+      teamId: teamDoc.id,
+      teamName: teamData.teamName,
+      notificationIndex: index,
+      ...notification
+    }));
+    
+    notificationsWithIds.sort((a, b) => {
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+      return dateB - dateA;
+    });
+    
+    return {
+      success: true,
+      notifications: notificationsWithIds
+    };
+  } catch (error) {
+    console.error('Error fetching user notifications:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error fetching user notifications'
+    };
+  }
+};
+
+export const markNotificationAsRead = async (notificationId) => {
+  try {
+    console.log('markNotificationAsRead called with ID:', notificationId);
+    
+    // Parse the notification ID to get team ID and notification index
+    // Handle case where teamId might contain underscores
+    const parts = notificationId.split('_');
+    if (parts.length < 2) {
+      console.error('Invalid notification ID format:', notificationId);
+      return {
+        success: false,
+        message: 'Invalid notification ID format'
+      };
+    }
+    
+    // The last part is the index, everything before that is the teamId
+    const notificationIndex = parseInt(parts[parts.length - 1]);
+    const teamId = parts.slice(0, -1).join('_');
+    
+    console.log('Parsed teamId:', teamId, 'notificationIndex:', notificationIndex);
+    
+    const teamRef = doc(db, 'teams', teamId);
+    const teamDoc = await getDoc(teamRef);
+    
+    if (!teamDoc.exists()) {
+      console.error('Team not found:', teamId);
+      return {
+        success: false,
+        message: 'Team not found'
+      };
+    }
+    
+    const teamData = teamDoc.data();
+    const notifications = teamData.notifications || [];
+    
+    console.log('Team notifications:', notifications.length, 'notifications found');
+    
+    if (isNaN(notificationIndex) || notificationIndex >= notifications.length || notificationIndex < 0) {
+      console.error('Invalid notification index:', notificationIndex, 'max index:', notifications.length - 1);
+      return {
+        success: false,
+        message: 'Notification not found'
+      };
+    }
+    
+    // Update the specific notification
+    const updatedNotifications = [...notifications];
+    updatedNotifications[notificationIndex] = {
+      ...updatedNotifications[notificationIndex],
+      read: true,
+      readAt: new Date()
+    };
+    
+    console.log('Updating notification at index:', notificationIndex);
+    
+    await updateDoc(teamRef, {
+      notifications: updatedNotifications,
+      lastNotificationUpdate: serverTimestamp()
+    });
+    
+    console.log('Notification marked as read successfully');
+    
+    return {
+      success: true,
+      message: 'Notification marked as read'
+    };
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error marking notification as read'
+    };
+  }
+};
+
+export const getTeamNotificationHistory = async (teamName) => {
+  try {
+    const teamsRef = collection(db, 'teams');
+    const q = query(teamsRef, where('teamName', '==', teamName));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return {
+        success: false,
+        message: 'Team not found'
+      };
+    }
+    
+    const teamData = querySnapshot.docs[0].data();
+    const notifications = teamData.notifications || [];
+    
+    return {
+      success: true,
+      notifications: notifications,
+      teamName: teamData.teamName,
+      totalNotifications: notifications.length
+    };
+  } catch (error) {
+    console.error('Error fetching team notification history:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error fetching team notification history'
+    };
+  }
+};
+
+export const clearTeamNotifications = async (teamName) => {
+  try {
+    const teamsRef = collection(db, 'teams');
+    const q = query(teamsRef, where('teamName', '==', teamName));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return {
+        success: false,
+        message: 'Team not found'
+      };
+    }
+    
+    const teamRef = doc(db, 'teams', querySnapshot.docs[0].id);
+    await updateDoc(teamRef, {
+      notifications: [],
+      lastNotificationUpdate: serverTimestamp()
+    });
+    
+    return {
+      success: true,
+      message: 'All notifications cleared for team'
+    };
+  } catch (error) {
+    console.error('Error clearing team notifications:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error clearing team notifications'
+    };
+  }
+};
+
+export const addDownloadHistory = async (downloadData) => {
+  try {
+    const downloadRef = doc(collection(db, 'downloadHistory'));
+    await setDoc(downloadRef, {
+      downloadType: 'notification_template',
+      downloadedAt: serverTimestamp(),
+      downloadedBy: downloadData.adminId || 'admin',
+      teamCount: downloadData.teamCount || 0,
+      notificationCount: downloadData.notificationCount || 0,
+      filename: downloadData.filename || '',
+      ...downloadData
+    });
+    
+    return {
+      success: true,
+      message: 'Download history recorded'
+    };
+  } catch (error) {
+    console.error('Error recording download history:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error recording download history'
+    };
+  }
+};
+
+export const getDownloadHistory = async () => {
+  try {
+    const downloadHistoryRef = collection(db, 'downloadHistory');
+    const q = query(downloadHistoryRef, orderBy('downloadedAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    
+    const downloadHistory = [];
+    querySnapshot.forEach((doc) => {
+      downloadHistory.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    return {
+      success: true,
+      downloadHistory: downloadHistory
+    };
+  } catch (error) {
+    console.error('Error fetching download history:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error fetching download history'
+    };
+  }
+};
+
+export const updateNotificationWithUploadInfo = async (notificationId, uploadInfo) => {
+  try {
+    const notificationRef = doc(db, 'notifications', notificationId);
+    await updateDoc(notificationRef, {
+      lastUploaded: serverTimestamp(),
+      uploadSource: uploadInfo.source || 'excel',
+      uploadBatch: uploadInfo.batchId || '',
+      ...uploadInfo
+    });
+    
+    return {
+      success: true,
+      message: 'Notification upload info updated'
+    };
+  } catch (error) {
+    console.error('Error updating notification upload info:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error updating notification upload info'
+    };
+  }
+};

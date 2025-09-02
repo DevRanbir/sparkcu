@@ -183,3 +183,9 @@ RegistrationForm / LoginForm: Forms for user input with validation.
 FileUpload: A component allowing users to upload their PPT files in the dashboard.
 
 Modal: A pop-up component for confirmations, alerts, or displaying additional information.
+
+ <DotLottieReact
+            src="https://lottie.host/1cf4ba68-139b-4c9b-98cc-1f8c3e02e4f4/ycKQZa62jW.lottie"
+            loop
+            autoplay
+        />

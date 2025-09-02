@@ -6,7 +6,9 @@ import {
   getAnnouncements, 
   updateTeamSubmission, 
   getTeamSubmission,
-  updateTeamTopicName
+  updateTeamTopicName,
+  getUserNotifications,
+  markNotificationAsRead
 } from '../services/firebase';
 
 const Dashboard = () => {
@@ -30,6 +32,8 @@ const Dashboard = () => {
   const [topicName, setTopicName] = useState('');
   const [isTopicLoading, setIsTopicLoading] = useState(false);
   const [topicSaved, setTopicSaved] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   // Event date - using useMemo to prevent recreation on every render
   const eventDate = useMemo(() => {
@@ -85,6 +89,7 @@ const Dashboard = () => {
     fetchCountdownConfig();
     fetchAnnouncementsData();
     fetchSubmissionData();
+    fetchNotifications();
     
     // Initialize topic name from userData
     if (userData?.topicName) {
@@ -92,6 +97,68 @@ const Dashboard = () => {
       setTopicSaved(true);
     }
   }, [currentUser, userData]);
+
+  // Fetch user notifications
+  const fetchNotifications = async () => {
+    if (!userData?.teamName) return;
+    
+    setLoadingNotifications(true);
+    try {
+      const result = await getUserNotifications(userData.teamName);
+      if (result.success) {
+        setNotifications(result.notifications);
+      } else {
+        console.error('Failed to fetch notifications:', result.message);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      console.log('Marking notification as read:', notificationId);
+      
+      // Find the notification in our local state to get the correct team info
+      const notification = notifications.find(notif => notif.id === notificationId);
+      if (!notification) {
+        console.error('Notification not found in local state');
+        alert('Notification not found. Please refresh the page.');
+        return;
+      }
+      
+      console.log('Found notification:', notification);
+      
+      // Use the teamId and notificationIndex from the notification object
+      const actualNotificationId = `${notification.teamId}_${notification.notificationIndex}`;
+      console.log('Using actual notification ID:', actualNotificationId);
+      
+      const result = await markNotificationAsRead(actualNotificationId);
+      console.log('Mark as read result:', result);
+      
+      if (result.success) {
+        // Update local state
+        setNotifications(prevNotifications => 
+          prevNotifications.map(notif => 
+            notif.id === notificationId 
+              ? { ...notif, read: true, readAt: new Date() }
+              : notif
+          )
+        );
+        
+        // Show success message
+        console.log('Notification marked as read successfully');
+      } else {
+        console.error('Failed to mark notification as read:', result.message);
+        alert('Failed to mark notification as read: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      alert('Error marking notification as read. Please try again.');
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -353,6 +420,72 @@ const Dashboard = () => {
                     <span className="detail-value">{userInfo.academicYear}</span>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Notifications */}
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">Your Notifications</h2>
+                <p className="card-subtitle">Personal messages and updates for your team</p>
+              </div>
+              <div className="notifications-section">
+                {loadingNotifications ? (
+                  <div className="loading-notifications">
+                    <div className="loading-spinner"></div>
+                    <p>Loading notifications...</p>
+                  </div>
+                ) : notifications.length > 0 ? (
+                  <div className="notifications-list">
+                    {notifications.map((notification) => (
+                      <div 
+                        key={notification.id} 
+                        className={`notification-item ${notification.read ? 'read' : 'unread'}`}
+                      >
+                        <div className="notification-content">
+                          <div className="notification-text">
+                            {notification.notification}
+                          </div>
+                          <div className="notification-meta">
+                            <span className="notification-date">
+                              {notification.createdAt ? 
+                                (notification.createdAt.toDate ? 
+                                  notification.createdAt.toDate().toLocaleDateString() : 
+                                  new Date(notification.createdAt).toLocaleDateString()
+                                ) : 'N/A'
+                              }
+                            </span>
+                            {!notification.read && (
+                              <button 
+                                className="mark-read-btn"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  console.log('Button clicked for notification:', notification.id, notification);
+                                  handleMarkAsRead(notification.id);
+                                }}
+                                title="Mark as read"
+                              >
+                                Mark as read
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        {!notification.read && <div className="unread-indicator"></div>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="no-notifications">
+                    <div className="no-notifications-icon">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                      </svg>
+                    </div>
+                    <p>No notifications yet</p>
+                    <small>You'll see team-specific messages and updates here</small>
+                  </div>
+                )}
               </div>
             </div>
           </div>
