@@ -27,7 +27,8 @@ import {
   updateDoc,
   deleteDoc,
   orderBy,
-  serverTimestamp
+  serverTimestamp,
+  writeBatch
 } from "firebase/firestore";
 import {
   getStorage,
@@ -2237,6 +2238,103 @@ export const updateNotificationWithUploadInfo = async (notificationId, uploadInf
       success: false,
       error: error.code,
       message: 'Error updating notification upload info'
+    };
+  }
+};
+
+// Results management functions
+export const getResults = async () => {
+  try {
+    const resultsRef = collection(db, 'results');
+    const querySnapshot = await getDocs(resultsRef);
+    
+    const results = [];
+    querySnapshot.forEach((doc) => {
+      results.push({
+        id: doc.id,
+        teamName: doc.id, // Using document ID as team name
+        ...doc.data()
+      });
+    });
+    
+    return {
+      success: true,
+      results: results
+    };
+  } catch (error) {
+    console.error('Error fetching results:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error fetching results'
+    };
+  }
+};
+
+export const saveResults = async (resultsData) => {
+  try {
+    const batch = writeBatch(db);
+    
+    for (const result of resultsData) {
+      if (!result.teamName) {
+        continue; // Skip entries without team name
+      }
+      
+      const resultRef = doc(db, 'results', result.teamName);
+      batch.set(resultRef, {
+        rank: result.rank || 0,
+        problemUnderstanding: result.problemUnderstanding || 0,
+        innovation: result.innovation || 0,
+        feasibility: result.feasibility || 0,
+        presentation: result.presentation || 0,
+        total: result.total || 0,
+        contestScore: result.contestScore || 0,
+        grandTotal: result.grandTotal || 0,
+        judgeReview: result.judgeReview || '',
+        updatedAt: serverTimestamp(),
+        createdAt: result.createdAt || serverTimestamp()
+      });
+    }
+    
+    await batch.commit();
+    
+    return {
+      success: true,
+      message: 'Results saved successfully'
+    };
+  } catch (error) {
+    console.error('Error saving results:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error saving results'
+    };
+  }
+};
+
+export const deleteAllResults = async () => {
+  try {
+    const resultsRef = collection(db, 'results');
+    const querySnapshot = await getDocs(resultsRef);
+    
+    const batch = writeBatch(db);
+    
+    querySnapshot.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    
+    await batch.commit();
+    
+    return {
+      success: true,
+      message: 'All results deleted successfully'
+    };
+  } catch (error) {
+    console.error('Error deleting all results:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error deleting all results'
     };
   }
 };

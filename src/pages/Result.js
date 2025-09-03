@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './Result.css';
 import CardSwap, { Card } from  '../components/CardSwap/CardSwap'
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import confetti from 'canvas-confetti';
 
 const Result = () => {
   // Sample data for winners table - replace with actual data
@@ -12,6 +13,59 @@ const Result = () => {
     { position: 4, teamName: "Team Delta", score: 78 },
     { position: 5, teamName: "Team Epsilon", score: 72 },
   ];
+
+  // Confetti celebration function
+  const celebrateWinners = () => {
+    // Main confetti burst
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+
+    var end = Date.now() + (12 * 1000);
+    var colors = ['#bb0000', '#3b3bffff'];
+
+    (function frame() {
+      confetti({
+        particleCount: 2,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: colors
+      });
+      confetti({
+        particleCount: 2,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: colors
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    }());
+
+    // Gold confetti for winners
+    setTimeout(() => {
+      confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+    }, 900);
+  };
+
+  // Trigger confetti on component mount
+  useEffect(() => {
+    // Delay to ensure page has loaded and rendered
+    const timer = setTimeout(() => {
+      celebrateWinners();
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="result-page">
@@ -30,31 +84,31 @@ const Result = () => {
                 pauseOnHover={true}
             >
                 <Card>
-                <h3>Card 1</h3>
-                <p>Your content here</p>
-                <DotLottieReact
-                    src="https://lottie.host/11026e90-1707-4d10-ace5-d7c59fefe233/YmWesrfPmp.lottie"
-                    loop
-                    autoplay
-                />
+                  <h3>Card 1</h3>
+                  <p>Your content here</p>
+                  <DotLottieReact
+                      src="https://lottie.host/11026e90-1707-4d10-ace5-d7c59fefe233/YmWesrfPmp.lottie"
+                      loop
+                      autoplay
+                  />
                 </Card>
                 <Card>
-                <h3>Card 2</h3>
-                <p>Your content here</p>
-                <DotLottieReact
-                    src="https://lottie.host/9d0ad823-048b-4914-8834-33bbf8ba3628/OZFRv6doVW.lottie"
-                    loop
-                    autoplay
-                />
+                  <h3>Card 2</h3>
+                  <p>Your content here</p>
+                  <DotLottieReact
+                      src="https://lottie.host/9d0ad823-048b-4914-8834-33bbf8ba3628/OZFRv6doVW.lottie"
+                      loop
+                      autoplay
+                  />
                 </Card>
                 <Card>
-                <h3>Card 3</h3>
-                <p>Your content here</p>
-                <DotLottieReact
-                    src="https://lottie.host/0673973f-72a2-4f5a-a1cc-7783d2f6920d/lyrA7FAiC2.lottie"
-                    loop
-                    autoplay
-                />
+                  <h3>Card 3</h3>
+                  <p>Your content here</p>
+                  <DotLottieReact
+                      src="https://lottie.host/0673973f-72a2-4f5a-a1cc-7783d2f6920d/lyrA7FAiC2.lottie"
+                      loop
+                      autoplay
+                  />
                 </Card>
             </CardSwap>
         </div>
@@ -70,7 +124,7 @@ const Result = () => {
           </div>
           
           <div className="winners-table-container">
-            <table className="winners-table">
+            <table className="winners-table" onClick={celebrateWinners}>
               <thead>
                 <tr>
                   <th>Position</th>

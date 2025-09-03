@@ -29,7 +29,10 @@ import {
   updateNotifications,
   deleteNotification,
   addDownloadHistory,
-  getDownloadHistory
+  getDownloadHistory,
+  getResults,
+  saveResults,
+  deleteAllResults
 } from '../services/firebase';
 import ScheduleAdmin from './ScheduleAdmin';
 import * as XLSX from 'xlsx';
@@ -142,6 +145,14 @@ function Management() {
   });
   const [updatingNotification, setUpdatingNotification] = useState(false);
   
+  // Results state
+  const [resultsData, setResultsData] = useState([]);
+  const [uploadingResults, setUploadingResults] = useState(false);
+  const [downloadingResultsTemplate, setDownloadingResultsTemplate] = useState(false);
+  const [deletingAllResults, setDeletingAllResults] = useState(false);
+  const [resultsPreview, setResultsPreview] = useState([]);
+  const [showResultsPreview, setShowResultsPreview] = useState(false);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -166,6 +177,7 @@ function Management() {
     fetchAutoAnnouncementSettings();
     fetchNotifications();
     fetchDownloadHistory();
+    fetchResultsData();
 
     // Handle window resize for responsive design
     const handleResize = () => {
@@ -269,6 +281,19 @@ function Management() {
       }
     } catch (error) {
       console.error('Error fetching schedule data:', error);
+    }
+  };
+
+  const fetchResultsData = async () => {
+    try {
+      const result = await getResults();
+      if (result.success) {
+        setResultsData(result.results);
+      } else {
+        console.error('Failed to fetch results:', result.message);
+      }
+    } catch (error) {
+      console.error('Error fetching results:', error);
     }
   };
 
@@ -1612,6 +1637,315 @@ function Management() {
     }
   };
 
+  // ========== RESULTS FUNCTIONS ==========
+  
+  const downloadResultsTemplate = async () => {
+    setDownloadingResultsTemplate(true);
+    try {
+      // Get all registered teams
+      const teamsData = teams.map(team => ({
+        teamName: team.teamName,
+        rank: '',
+        problemUnderstanding: '',
+        innovation: '',
+        feasibility: '',
+        presentation: '',
+        total: '',
+        contestScore: '',
+        grandTotal: '',
+        judgeReview: ''
+      })).sort((a, b) => a.teamName.localeCompare(b.teamName));
+
+      // If no teams, add example data
+      if (teamsData.length === 0) {
+        teamsData.push({
+          teamName: 'Example Team 1',
+          rank: '1',
+          problemUnderstanding: '2',
+          innovation: '3',
+          feasibility: '2',
+          presentation: '3',
+          total: '10',
+          contestScore: '2',
+          grandTotal: '12',
+          judgeReview: 'Excellent presentation and innovative solution'
+        });
+        teamsData.push({
+          teamName: 'Example Team 2',
+          rank: '2',
+          problemUnderstanding: '1',
+          innovation: '2',
+          feasibility: '2',
+          presentation: '2',
+          total: '7',
+          contestScore: '1.5',
+          grandTotal: '8.5',
+          judgeReview: 'Good effort but needs improvement in innovation'
+        });
+      }
+
+      // Create Excel workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Create main results sheet
+      const resultsSheet = XLSX.utils.json_to_sheet(teamsData.map(team => ({
+        'Team Name': team.teamName,
+        'Rank': team.rank,
+        'Problem Understanding (0-2)': team.problemUnderstanding,
+        'Innovation (0-3)': team.innovation,
+        'Feasibility (0-2)': team.feasibility,
+        'Presentation (0-3)': team.presentation,
+        'Total (0-10)': team.total,
+        'Contest Score (0-2)': team.contestScore,
+        'Grand Total (0-12)': team.grandTotal,
+        'Judge Review': team.judgeReview
+      })));
+
+      // Add Excel formulas for the first 100 rows
+      for (let row = 2; row <= 101; row++) { // Row 2 to 101 (skipping header row 1)
+        // Formula 1: Total (G column) = SUM(C:F) - Problem Understanding + Innovation + Feasibility + Presentation
+        const totalCell = `G${row}`;
+        resultsSheet[totalCell] = { 
+          f: `SUM(C${row}:F${row})`,
+          t: 'n'
+        };
+
+        // Formula 2: Grand Total (I column) = SUM(G,H) - Total + Contest Score
+        const grandTotalCell = `I${row}`;
+        resultsSheet[grandTotalCell] = {
+          f: `SUM(G${row},H${row})`,
+          t: 'n'
+        };
+
+        // Formula 3: Rank (B column) = RANK(I,$I$2:$I$101,0) - Rank based on Grand Total
+        const rankCell = `B${row}`;
+        resultsSheet[rankCell] = {
+          f: `RANK(I${row},$I$2:$I$101,0)`,
+          t: 'n'
+        };
+      }
+      
+      XLSX.utils.book_append_sheet(wb, resultsSheet, 'Results');
+
+      // Add instructions sheet
+      const instructions = [
+        { 'Field': 'IMPORTANT', 'Description': 'Automatic Formulas Applied', 'Valid Values': 'Total, Grand Total, and Rank columns have automatic calculations' },
+        { 'Field': 'Team Name', 'Description': 'Team name (Do not modify)', 'Valid Values': 'Registered team names only' },
+        { 'Field': 'Rank', 'Description': 'Final ranking position (AUTO-CALCULATED)', 'Valid Values': 'Automatically calculated based on Grand Total' },
+        { 'Field': 'Problem Understanding', 'Description': 'Score for problem understanding', 'Valid Values': '0 to 2 (decimals allowed)' },
+        { 'Field': 'Innovation', 'Description': 'Score for innovation and creativity', 'Valid Values': '0 to 3 (decimals allowed)' },
+        { 'Field': 'Feasibility', 'Description': 'Score for technical feasibility', 'Valid Values': '0 to 2 (decimals allowed)' },
+        { 'Field': 'Presentation', 'Description': 'Score for presentation skills', 'Valid Values': '0 to 3 (decimals allowed)' },
+        { 'Field': 'Total', 'Description': 'Total score (AUTO-CALCULATED)', 'Valid Values': 'Sum of Problem + Innovation + Feasibility + Presentation' },
+        { 'Field': 'Contest Score', 'Description': 'Additional contest/coding score', 'Valid Values': '0 to 2 (decimals allowed)' },
+        { 'Field': 'Grand Total', 'Description': 'Overall total score (AUTO-CALCULATED)', 'Valid Values': 'Sum of Total + Contest Score' },
+        { 'Field': 'Judge Review', 'Description': 'Judge comments and feedback', 'Valid Values': 'Free text' },
+        { 'Field': 'HOW TO USE', 'Description': '1. Enter scores in columns C-F and H', 'Valid Values': '2. Total, Grand Total, and Rank will calculate automatically' },
+        { 'Field': 'FORMULA INFO', 'Description': 'Applied to rows 2-101 for 100 teams', 'Valid Values': 'Formulas: =SUM(C:F), =SUM(G,H), =RANK(I,$I$2:$I$101,0)' }
+      ];
+      
+      const instructionsSheet = XLSX.utils.json_to_sheet(instructions);
+      XLSX.utils.book_append_sheet(wb, instructionsSheet, 'Instructions');
+
+      // Style headers
+      const headerRange = XLSX.utils.decode_range(resultsSheet['!ref']);
+      for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+        const headerCell = XLSX.utils.encode_cell({ r: 0, c: col });
+        if (resultsSheet[headerCell]) {
+          // Special styling for auto-calculated columns (B, G, I - Rank, Total, Grand Total)
+          if (col === 1 || col === 6 || col === 8) { // B, G, I columns (0-indexed)
+            resultsSheet[headerCell].s = {
+              font: { bold: true, color: { rgb: "FFFFFF" } },
+              fill: { fgColor: { rgb: "4CAF50" } }, // Green background for auto-calculated
+              alignment: { horizontal: "center" }
+            };
+          } else {
+            resultsSheet[headerCell].s = {
+              font: { bold: true },
+              fill: { fgColor: { rgb: "EEEEEE" } }
+            };
+          }
+        }
+      }
+
+      // Style the formula cells with light green background for first 100 rows
+      for (let row = 2; row <= 101; row++) {
+        // Style Rank column (B)
+        const rankCell = `B${row}`;
+        if (!resultsSheet[rankCell]) resultsSheet[rankCell] = {};
+        resultsSheet[rankCell].s = {
+          fill: { fgColor: { rgb: "E8F5E8" } }, // Light green
+          alignment: { horizontal: "center" }
+        };
+
+        // Style Total column (G)
+        const totalCell = `G${row}`;
+        if (!resultsSheet[totalCell]) resultsSheet[totalCell] = {};
+        resultsSheet[totalCell].s = {
+          fill: { fgColor: { rgb: "E8F5E8" } }, // Light green
+          alignment: { horizontal: "center" }
+        };
+
+        // Style Grand Total column (I)
+        const grandTotalCell = `I${row}`;
+        if (!resultsSheet[grandTotalCell]) resultsSheet[grandTotalCell] = {};
+        resultsSheet[grandTotalCell].s = {
+          fill: { fgColor: { rgb: "E8F5E8" } }, // Light green
+          alignment: { horizontal: "center" }
+        };
+      }
+
+      // Set column widths
+      resultsSheet['!cols'] = [
+        { wch: 20 }, // Team Name
+        { wch: 8 },  // Rank
+        { wch: 20 }, // Problem Understanding
+        { wch: 15 }, // Innovation
+        { wch: 15 }, // Feasibility
+        { wch: 15 }, // Presentation
+        { wch: 12 }, // Total
+        { wch: 15 }, // Contest Score
+        { wch: 15 }, // Grand Total
+        { wch: 40 }  // Judge Review
+      ];
+
+      // Generate filename
+      const filename = `Results_Template_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // Download
+      XLSX.writeFile(wb, filename);
+      
+      alert(`Results template downloaded successfully!\nFilename: ${filename}`);
+    } catch (error) {
+      console.error('Error generating results template:', error);
+      alert('Error generating results template: ' + error.message);
+    } finally {
+      setDownloadingResultsTemplate(false);
+    }
+  };
+
+  const handleResultsFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.xlsx') && !file.name.toLowerCase().endsWith('.xls')) {
+      alert('Please upload an Excel file (.xlsx or .xls)');
+      event.target.value = '';
+      return;
+    }
+
+    setUploadingResults(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+          if (jsonData.length === 0) {
+            alert('Excel file is empty');
+            return;
+          }
+
+          // Validate structure
+          const firstRow = jsonData[0];
+          const requiredFields = ['Team Name', 'Rank', 'Problem Understanding (0-2)', 'Innovation (0-3)', 'Feasibility (0-2)', 'Presentation (0-3)', 'Total (0-10)', 'Contest Score (0-2)', 'Grand Total (0-12)', 'Judge Review'];
+          const missingFields = requiredFields.filter(field => !Object.keys(firstRow).includes(field));
+          
+          if (missingFields.length > 0) {
+            alert(`Missing required columns: ${missingFields.join(', ')}`);
+            return;
+          }
+
+          // Process results data
+          const processedResults = jsonData.map((row, index) => {
+            const teamName = row['Team Name']?.toString().trim();
+            if (!teamName) return null;
+
+            return {
+              teamName: teamName,
+              rank: parseInt(row['Rank']) || 0,
+              problemUnderstanding: parseFloat(row['Problem Understanding (0-2)']) || 0,
+              innovation: parseFloat(row['Innovation (0-3)']) || 0,
+              feasibility: parseFloat(row['Feasibility (0-2)']) || 0,
+              presentation: parseFloat(row['Presentation (0-3)']) || 0,
+              total: parseFloat(row['Total (0-10)']) || 0,
+              contestScore: parseFloat(row['Contest Score (0-2)']) || 0,
+              grandTotal: parseFloat(row['Grand Total (0-12)']) || 0,
+              judgeReview: row['Judge Review']?.toString() || '',
+              createdAt: new Date()
+            };
+          }).filter(result => result !== null);
+
+          setResultsPreview(processedResults);
+          setShowResultsPreview(true);
+          
+        } catch (error) {
+          alert('Error reading file: ' + error.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } catch (error) {
+      alert('Error uploading file: ' + error.message);
+    } finally {
+      setUploadingResults(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleSaveResults = async () => {
+    if (resultsPreview.length === 0) {
+      alert('No results data to save');
+      return;
+    }
+
+    setUploadingResults(true);
+    try {
+      const result = await saveResults(resultsPreview);
+      if (result.success) {
+        alert(`Successfully saved results for ${resultsPreview.length} teams!`);
+        setShowResultsPreview(false);
+        setResultsPreview([]);
+        fetchResultsData(); // Refresh the results data
+      } else {
+        alert('Error saving results: ' + result.message);
+      }
+    } catch (error) {
+      alert('Error saving results: ' + error.message);
+    } finally {
+      setUploadingResults(false);
+    }
+  };
+
+  const handleDeleteAllResults = async () => {
+    if (resultsData.length === 0) {
+      alert('No results to delete');
+      return;
+    }
+
+    if (!window.confirm('Are you sure you want to delete ALL results? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingAllResults(true);
+    try {
+      const result = await deleteAllResults();
+      if (result.success) {
+        alert('All results deleted successfully!');
+        setResultsData([]);
+      } else {
+        alert('Error deleting results: ' + result.message);
+      }
+    } catch (error) {
+      alert('Error deleting results: ' + error.message);
+    } finally {
+      setDeletingAllResults(false);
+    }
+  };
+
   // ========== CUSTOM MESSAGE FUNCTIONS ==========
   
   const handleSendCustomMessage = () => {
@@ -2617,6 +2951,177 @@ function Management() {
             </div>
           </div>
         );
+      case 'results':
+        return (
+          <div className="tab-content">
+            <div className="results-section">
+              <div className="results-header">
+                <h3>Competition Results</h3>
+                <p>Upload Excel files with team results and scores</p>
+              </div>
+
+              <div className="results-actions">
+                <div className="upload-area">
+                  <input
+                    type="file"
+                    id="results-file-upload"
+                    accept=".xlsx,.xls"
+                    onChange={handleResultsFileUpload}
+                    style={{ display: 'none' }}
+                  />
+                  <button
+                    className="upload-button"
+                    onClick={() => document.getElementById('results-file-upload').click()}
+                    disabled={uploadingResults}
+                  >
+                    {uploadingResults ? 'Uploading...' : 'Upload Results Excel'}
+                  </button>
+                  <span className="file-hint">Excel files with team scores (.xlsx, .xls)</span>
+                </div>
+
+                <div className="download-area">
+                  <button
+                    className="download-button"
+                    onClick={downloadResultsTemplate}
+                    disabled={downloadingResultsTemplate}
+                  >
+                    {downloadingResultsTemplate ? 'Generating...' : 'Download Template'}
+                  </button>
+                  <span className="file-hint">Get Excel template with scoring structure</span>
+                </div>
+
+                <div className="delete-area">
+                  <button
+                    className="delete-all-button"
+                    onClick={handleDeleteAllResults}
+                    disabled={deletingAllResults || resultsData.length === 0}
+                  >
+                    🗑️ {deletingAllResults ? 'Deleting...' : 'Delete All Results'}
+                  </button>
+                  <span className="file-hint">Remove all saved results from database</span>
+                </div>
+              </div>
+
+              <div className="results-stats">
+                <div className="stat-card">
+                  <span className="stat-number">{teams.length}</span>
+                  <span className="stat-label">Total Teams</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-number">{resultsData.length}</span>
+                  <span className="stat-label">Results Saved</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-number">{resultsData.filter(r => r.rank <= 3).length}</span>
+                  <span className="stat-label">Top 3 Teams</span>
+                </div>
+              </div>
+
+              {/* Results Preview Modal */}
+              {showResultsPreview && (
+                <div className="results-preview-modal">
+                  <div className="modal-content">
+                    <h4>Results Preview</h4>
+                    <p>Review the results before saving to Firebase</p>
+                    
+                    <div className="results-table-container">
+                      <table className="results-table">
+                        <thead>
+                          <tr>
+                            <th>Team Name</th>
+                            <th>Rank</th>
+                            <th>Problem (2)</th>
+                            <th>Innovation (3)</th>
+                            <th>Feasibility (2)</th>
+                            <th>Presentation (3)</th>
+                            <th>Total (10)</th>
+                            <th>Contest (2)</th>
+                            <th>Grand Total (12)</th>
+                            <th>Review</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {resultsPreview.map((result, index) => (
+                            <tr key={index}>
+                              <td>{result.teamName}</td>
+                              <td>{result.rank}</td>
+                              <td>{result.problemUnderstanding}</td>
+                              <td>{result.innovation}</td>
+                              <td>{result.feasibility}</td>
+                              <td>{result.presentation}</td>
+                              <td>{result.total}</td>
+                              <td>{result.contestScore}</td>
+                              <td>{result.grandTotal}</td>
+                              <td className="review-cell">{result.judgeReview}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    <div className="modal-actions">
+                      <button onClick={handleSaveResults} disabled={uploadingResults}>
+                        {uploadingResults ? 'Saving...' : 'Save Results'}
+                      </button>
+                      <button onClick={() => setShowResultsPreview(false)}>Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Saved Results Table */}
+              {resultsData.length > 0 && (
+                <div className="saved-results-section">
+                  <h4>Saved Results</h4>
+                  <div className="results-table-container">
+                    <table className="results-table">
+                      <thead>
+                        <tr>
+                          <th>Rank</th>
+                          <th>Team Name</th>
+                          <th>Problem (2)</th>
+                          <th>Innovation (3)</th>
+                          <th>Feasibility (2)</th>
+                          <th>Presentation (3)</th>
+                          <th>Total (10)</th>
+                          <th>Contest (2)</th>
+                          <th>Grand Total (12)</th>
+                          <th>Judge Review</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {resultsData
+                          .sort((a, b) => a.rank - b.rank)
+                          .map((result, index) => (
+                          <tr key={index} className={result.rank <= 3 ? 'winner-row' : ''}>
+                            <td className="rank-cell">
+                              {result.rank <= 3 ? (
+                                <span className={`rank-badge rank-${result.rank}`}>
+                                  {result.rank === 1 ? '🥇' : result.rank === 2 ? '🥈' : '🥉'} {result.rank}
+                                </span>
+                              ) : (
+                                result.rank
+                              )}
+                            </td>
+                            <td className="team-name-cell">{result.teamName}</td>
+                            <td>{result.problemUnderstanding}</td>
+                            <td>{result.innovation}</td>
+                            <td>{result.feasibility}</td>
+                            <td>{result.presentation}</td>
+                            <td className="total-cell">{result.total}</td>
+                            <td>{result.contestScore}</td>
+                            <td className="grand-total-cell">{result.grandTotal}</td>
+                            <td className="review-cell">{result.judgeReview}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
       case 'gallery':
         return (
           <div className="tab-content">
@@ -3221,6 +3726,19 @@ function Management() {
               </svg>
             </span>
             Notifiers
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'results' ? 'active' : ''}`}
+            onClick={() => setActiveTab('results')}
+          >
+            <span className="tab-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 12l2 2 4-4"/>
+                <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.5 0 4.74 1.02 6.36 2.64"/>
+                <path d="M21 3v6h-6"/>
+              </svg>
+            </span>
+            Results
           </button>
           <button 
             className={`tab-btn ${activeTab === 'gallery' ? 'active' : ''}`}

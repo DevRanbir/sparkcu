@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import './Homepage.css';
 import RotatingText from '../TextAnimations/RotatingText/RotatingText';
 import { getAllTeams, getCountdownData } from '../services/firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 function Homepage() {
+  const { currentUser, loading: authLoading } = useAuth();
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasAutoPlayed, setHasAutoPlayed] = useState(false);
@@ -160,8 +162,18 @@ function Homepage() {
 
         {/* Navigation Links */}
         <div className="nav-links">
-          <Link to="/register" className="nav-link">Register</Link>
-          <Link to="/login" className="nav-link">Login</Link>
+          {!authLoading && (
+            currentUser ? (
+              // User is logged in - show Dashboard
+              <Link to="/dashboard" className="nav-link">Dashboard</Link>
+            ) : (
+              // User is not logged in - show Register and Login
+              <>
+                <Link to="/register" className="nav-link">Register</Link>
+                <Link to="/login" className="nav-link">Login</Link>
+              </>
+            )
+          )}
           <Link to="/schedule" className="nav-link">Schedule</Link>
           <Link to="/rules" className="nav-link">Rules</Link>
           <Link to="/about" className="nav-link">About</Link>
@@ -363,7 +375,13 @@ function Homepage() {
             </div>
             
             <div className="action-section">
-              <Link to="/register" className="primary-btn">Join the Competition</Link>
+              {!authLoading && (
+                currentUser ? (
+                  <Link to="/dashboard" className="primary-btn">Go to Dashboard</Link>
+                ) : (
+                  <Link to="/register" className="primary-btn">Join the Competition</Link>
+                )
+              )}
             </div>
           </section>
         </div>
