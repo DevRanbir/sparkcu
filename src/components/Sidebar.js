@@ -211,9 +211,9 @@ function Sidebar({ currentPath, onNavigate, isLoggedIn, isAdminLoggedIn, onLogou
   // Split items for mobile view - use the same logic as desktop
   const allItems = [...sidebarItems];
 
-  const mobileVisibleItems = allItems.slice(0, 4);
-  const mobileHiddenItems = allItems.slice(4);
-  
+  const mobileVisibleItems = allItems.slice(0, 7);
+  const mobileHiddenItems = allItems.slice(7);
+
   // Create more button if there are hidden items
   const moreButton = mobileHiddenItems.length > 0 ? {
     id: 'more',

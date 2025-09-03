@@ -147,6 +147,7 @@
   /* Show mobile items */
   .mobile-items {
     display: flex;
+    flex-direction: row-reverse;
   }
   
   .sidebar-content {

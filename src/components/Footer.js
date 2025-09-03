@@ -49,6 +49,7 @@ function Footer() {
             <li><Link to="/rules">Rules & Guidelines</Link></li>
             <li><Link to="/schedule">Schedule</Link></li>
             <li><Link to="/register">Registration</Link></li>
+            <li><Link to="/admin">Gallery</Link></li>
           </ul>
         </div>
         

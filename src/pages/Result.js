@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import './Result.css';
 import CardSwap, { Card } from  '../components/CardSwap/CardSwap'
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
@@ -35,7 +35,7 @@ const Result = () => {
   };
 
   // Fetch results from Firebase
-  const fetchResults = async () => {
+  const fetchResults = useCallback(async () => {
     try {
       setLoading(true);
       const result = await getResults();
@@ -94,11 +94,11 @@ const Result = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Confetti celebration function
   const celebrateWinners = () => {
-    var duration = 15 * 1000;
+    var duration = 35 * 1000;
     var animationEnd = Date.now() + duration;
     var skew = 1;
 
@@ -172,7 +172,7 @@ const Result = () => {
   // Fetch results on component mount
   useEffect(() => {
     fetchResults();
-  }, []);
+  }, [fetchResults]);
 
   // Trigger confetti on component mount (after results are loaded)
   useEffect(() => {
@@ -186,6 +186,30 @@ const Result = () => {
     }
   }, [loading, resultsData]);
 
+  // Check if user is on mobile device
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Detect mobile devices on component mount
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobileCheck = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+      setIsMobile(mobileCheck);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkMobile);
+    
+    // Clean up
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Set cardDistance value based on device
+  const cardDistanceValue = isMobile ? 1 : 8;
+  const skewAmountValue = isMobile ? 0 : 8;
+  
   return (
     <div className="result-page">
       <div className="result-content">
@@ -197,10 +221,11 @@ const Result = () => {
 
         <div style={{position: 'relative',marginTop: '100vh' }}>
             <CardSwap
-                cardDistance={60}
+                cardDistance={cardDistanceValue}
                 verticalDistance={70}
                 delay={5000}
                 pauseOnHover={true}
+                skewAmount={skewAmountValue}
             >
                 <Card>
                   <div style={{
@@ -290,30 +315,7 @@ const Result = () => {
                               <div style={{ fontSize: '12px', color: '#555' }}>
                                 <span style={{ fontWeight: 'bold', color: '#333' }}>Problem Understanding:</span>
                                 <br />
-                                <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>
-                                  {firstPositionTeam.problemUnderstanding || 'N/A'}/2
-                                </span>
-                              </div>
-                              
-                              <div style={{ fontSize: '12px', color: '#555' }}>
-                                <span style={{ fontWeight: 'bold', color: '#333' }}>Innovation:</span>
-                                <br />
-                                <span style={{ color: '#2196F3', fontWeight: 'bold' }}>
-                                  {firstPositionTeam.innovation || 'N/A'}/3
-                                </span>
-                              </div>
-                              
-                              <div style={{ fontSize: '12px', color: '#555' }}>
-                                <span style={{ fontWeight: 'bold', color: '#333' }}>Feasibility:</span>
-                                <br />
-                                <span style={{ color: '#FF9800', fontWeight: 'bold' }}>
-                                  {firstPositionTeam.feasibility || 'N/A'}/2
-                                </span>
-                              </div>
-                              
-                              <div style={{ fontSize: '12px', color: '#555' }}>
-                                <span style={{ fontWeight: 'bold', color: '#333' }}>Presentation:</span>
-                                <br />
+                                <span style={{ color: '#4CAF50', fontWeight: 'bold' }}></span>
                                 <span style={{ color: '#9C27B0', fontWeight: 'bold' }}>
                                   {firstPositionTeam.presentation || 'N/A'}/3
                                 </span>
@@ -801,7 +803,7 @@ const Result = () => {
             </div>
           ) : resultsData.length > 0 ? (
             <div className="winners-table-container">
-              <table className="winners-table" onClick={celebrateWinners}>
+              <table className="winners-table">
                 <thead>
                   <tr>
                     <th>Rank</th>
@@ -825,7 +827,6 @@ const Result = () => {
                                   <path fill="#CD7F32" d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2Z"/>
                             </svg> 
                             }
-                            <span className="position-number">{team.position}</span>
                           </span>
                         ) : (
                           <span className="position-number">{team.position}</span>
@@ -837,6 +838,15 @@ const Result = () => {
                   ))}
                 </tbody>
               </table>
+              <p style={{ 
+                color: '#000', 
+                fontSize: '12px', 
+                margin: '0', 
+                marginTop: '10px',
+                textAlign: 'center'
+              }}>
+                More detailed information is sent to the team dashboard
+              </p>
             </div>
           ) : (
             <div className="no-results-container">

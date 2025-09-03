@@ -260,7 +260,7 @@ function KeyMaps() {
 
         // Add toolbar
         setTimeout(() => {
-          if (window.markmap.Toolbar) {
+          if (window.markmap.Toolbar && svgRef.current && svgRef.current.parentElement) {
             const toolbar = new window.markmap.Toolbar();
             toolbar.attach(mm);
             const toolbarElement = toolbar.render();

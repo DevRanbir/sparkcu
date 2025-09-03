@@ -3113,10 +3113,6 @@ function Management() {
                   <span className="stat-number">{resultsData.length}</span>
                   <span className="stat-label">Results Saved</span>
                 </div>
-                <div className="stat-card">
-                  <span className="stat-number">{resultsData.filter(r => r.rank <= 3).length}</span>
-                  <span className="stat-label">Top 3 Teams</span>
-                </div>
               </div>
 
               {/* Results Preview Modal */}
