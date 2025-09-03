@@ -19,6 +19,7 @@ import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { logoutUser, logoutAdmin, getPageVisibilitySettings } from './services/firebase';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 // Component to handle the main app content with routing
 function AppContent() {
@@ -149,10 +150,11 @@ function AppContent() {
   if (pageVisibilityLoading) {
     return (
       <div className="App">
-        <div className="loading-screen">
-          <div className="loading-spinner"></div>
-          <p>Loading...</p>
-        </div>
+        <DotLottieReact
+          src="https://lottie.host/b01dcfb7-54c1-4dfb-9e00-3313fc676651/yjqVt2gkbr.lottie"
+          loop
+          autoplay
+        />
       </div>
     );
   }

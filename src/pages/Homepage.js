@@ -4,6 +4,7 @@ import './Homepage.css';
 import RotatingText from '../TextAnimations/RotatingText/RotatingText';
 import { getAllTeams, getCountdownData } from '../services/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import CircularGallery from '../components/CircularGallery/CircularGallery';
 
 function Homepage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -384,8 +385,13 @@ function Homepage() {
               )}
             </div>
           </section>
+
+          <div style={{ height: '700px', width: '100%', position: 'relative', transform: 'scale(0.8)', marginTop: '-8rem', zIndex: 10000000 }}>
+            <CircularGallery bend={2} textColor="#000000ff" borderRadius={0.05} scrollEase={0.02}/>
+          </div>
+
         </div>
-        
+
         <div className="media-container">
           <div className="video-container">
             <video
