@@ -352,6 +352,7 @@ const Register = () => {
         <p className="welcome-description">
           Join the ultimate coding competition and showcase your programming skills. 
           Register your team and compete with the best developers from around the university.
+          <br /> <strong>Enter carefully, saved details can not be changed later.</strong>
         </p>
         
         <div className="welcome-actions">
@@ -689,7 +690,7 @@ const Register = () => {
             "Team-based coding challenges",
             "Real-world problem solving",
             "Exciting prizes and recognition",
-            "Networking opportunities"
+            "Networking opportunities",
           ]
         };
       case 1:

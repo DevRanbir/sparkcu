@@ -2,7 +2,6 @@ import React from 'react';
 import './Result.css';
 import CardSwap, { Card } from  '../components/CardSwap/CardSwap'
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import RotatingText from '../TextAnimations/RotatingText/RotatingText';
 
 const Result = () => {
   // Sample data for winners table - replace with actual data

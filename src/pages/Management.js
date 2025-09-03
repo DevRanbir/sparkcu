@@ -20,12 +20,14 @@ import {
   deleteStoredDomeGalleryImage,
   getPageVisibilitySettings,
   updatePageVisibilitySettings,
+  getSubmissionSettings,
+  updateSubmissionSettings,
+  getAutoAnnouncementSettings,
+  checkAndCreateAutoAnnouncements,
   getNotifications,
   addNotifications,
   updateNotifications,
   deleteNotification,
-  getTeamNotificationHistory,
-  clearTeamNotifications,
   addDownloadHistory,
   getDownloadHistory
 } from '../services/firebase';
@@ -84,6 +86,21 @@ function Management() {
   const [submissionFilter, setSubmissionFilter] = useState('all');
   const [scheduleData, setScheduleData] = useState([]);
   
+  // Submission Settings state
+  const [submissionSettings, setSubmissionSettings] = useState({
+    enabled: true,
+    message: 'Submissions are currently open'
+  });
+  const [updatingSubmissionSettings, setUpdatingSubmissionSettings] = useState(false);
+  
+  // Auto Announcement Settings state
+  const [autoAnnouncementSettings, setAutoAnnouncementSettings] = useState({
+    enabled: true,
+    message: 'Auto-announcements for schedule events'
+  });
+  // eslint-disable-next-line
+  const [updatingAutoAnnouncements, setUpdatingAutoAnnouncements] = useState(false);
+  
   // Page Visibility state
   const [pageVisibilitySettings, setPageVisibilitySettings] = useState({
     home: true,
@@ -104,6 +121,7 @@ function Management() {
   const [notifications, setNotifications] = useState([]);
   const [uploadingNotifications, setUploadingNotifications] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [downloadHistory, setDownloadHistory] = useState([]);
   
   // Custom message popup state
@@ -144,8 +162,9 @@ function Management() {
     fetchDomeGalleryImages();
     fetchStoredImages();
     fetchPageVisibilitySettings();
+    fetchSubmissionSettings();
+    fetchAutoAnnouncementSettings();
     fetchNotifications();
-    fetchDownloadHistory();
     fetchDownloadHistory();
 
     // Handle window resize for responsive design
@@ -168,6 +187,34 @@ function Management() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showFilterDropdown]);
+
+  // Auto-announcement checker - runs every 30 seconds
+  useEffect(() => {
+    const checkAutoAnnouncements = async () => {
+      if (autoAnnouncementSettings.enabled) {
+        try {
+          const result = await checkAndCreateAutoAnnouncements();
+          if (result.success && result.createdCount > 0) {
+            console.log(`Created ${result.createdCount} auto-announcements:`, result.announcements);
+            // Refresh announcements to show the new ones
+            fetchAnnouncements();
+          }
+        } catch (error) {
+          console.error('Error checking auto-announcements:', error);
+        }
+      }
+    };
+
+    // Check immediately on mount if enabled
+    if (autoAnnouncementSettings.enabled) {
+      checkAutoAnnouncements();
+    }
+
+    // Set up interval to check every 30 seconds (30000 ms) for more responsive checking
+    const interval = setInterval(checkAutoAnnouncements, 30000);
+
+    return () => clearInterval(interval);
+  }, [autoAnnouncementSettings.enabled]);
 
   const fetchTeamsData = async () => {
     setLoading(true);
@@ -273,6 +320,28 @@ function Management() {
     }
   };
 
+  const fetchSubmissionSettings = async () => {
+    try {
+      const result = await getSubmissionSettings();
+      if (result.success) {
+        setSubmissionSettings(result.settings);
+      }
+    } catch (error) {
+      console.error('Error fetching submission settings:', error);
+    }
+  };
+
+  const fetchAutoAnnouncementSettings = async () => {
+    try {
+      const result = await getAutoAnnouncementSettings();
+      if (result.success) {
+        setAutoAnnouncementSettings(result.settings);
+      }
+    } catch (error) {
+      console.error('Error fetching auto announcement settings:', error);
+    }
+  };
+
   const handlePageVisibilityUpdate = async (pageName, isVisible) => {
     setUpdatingPageVisibility(true);
     try {
@@ -293,6 +362,30 @@ function Management() {
       alert('Error updating page visibility');
     } finally {
       setUpdatingPageVisibility(false);
+    }
+  };
+
+  const handleSubmissionSettingsUpdate = async (event) => {
+    const enabled = event.target.checked;
+    setUpdatingSubmissionSettings(true);
+    try {
+      const updatedSettings = {
+        enabled: enabled,
+        message: enabled ? 'Submissions are currently open' : 'Submissions are currently closed'
+      };
+      
+      const result = await updateSubmissionSettings(updatedSettings);
+      if (result.success) {
+        setSubmissionSettings(updatedSettings);
+        alert(`Submissions ${enabled ? 'enabled' : 'disabled'} successfully!`);
+      } else {
+        alert('Error: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error updating submission settings:', error);
+      alert('Error updating submission settings');
+    } finally {
+      setUpdatingSubmissionSettings(false);
     }
   };
 
@@ -1573,17 +1666,6 @@ function Management() {
     setTimeout(() => setShowTeamDropdown(false), 200);
   };
 
-  const handleAddTeamFromSearch = (teamName) => {
-    if (!customMessageForm.selectedTeams.includes(teamName)) {
-      setCustomMessageForm(prev => ({
-        ...prev,
-        selectedTeams: [...prev.selectedTeams, teamName]
-      }));
-    }
-    setTeamSearchTerm('');
-    setShowTeamDropdown(false);
-  };
-
   const handleRemoveSelectedTeam = (teamName) => {
     setCustomMessageForm(prev => ({
       ...prev,
@@ -1683,23 +1765,6 @@ function Management() {
     setEditNotificationForm({ message: '' });
   };
 
-  const updateNotificationDownloadHistory = async (downloadTimestamp) => {
-    try {
-      const downloadData = {
-        adminId: adminData?.adminId || 'admin',
-        teamCount: teams.length,
-        notificationCount: notifications.length,
-        filename: `Notifications_Template_${downloadTimestamp.split('T')[0]}_${downloadTimestamp.split('T')[1].substring(0, 8).replace(/:/g, '-')}.xlsx`,
-        registeredTeams: teams.map(team => team.teamName)
-      };
-      
-      await addDownloadHistory(downloadData);
-      fetchDownloadHistory(); // Refresh download history
-    } catch (error) {
-      console.error('Error tracking download history:', error);
-    }
-  };
-
   const fetchDownloadHistory = async () => {
     try {
       const result = await getDownloadHistory();
@@ -1724,15 +1789,19 @@ function Management() {
           <div className="tab-content">
             <h3>System Overview</h3>
             <div className="stats-grid">
-              <div className="stat-card">
+              <div className="stat-card" onClick={() => setActiveTab('teams')} style={{ cursor: 'pointer' }}>
                 <h4>Total Teams</h4>
                 <p className="stat-number">{teamsCount}</p>
+                <small className="stat-subtitle">
+                  {teams.filter(team => team.emailVerified).length} verified, {teams.filter(team => !team.emailVerified).length} pending
+                </small>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" onClick={() => setActiveTab('teams')} style={{ cursor: 'pointer' }}>
                 <h4>Total Users</h4>
                 <p className="stat-number">{teams.reduce((acc, team) => acc + (team.members ? team.members.length : 0), 0)}</p>
+                <small className="stat-subtitle">Active participants</small>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" onClick={() => setActiveTab('teams')} style={{ cursor: 'pointer' }}>
                 <h4>Registrations Today</h4>
                 <p className="stat-number">{teams.filter(team => {
                   if (!team.createdAt) return false;
@@ -1740,13 +1809,29 @@ function Management() {
                   const teamDate = team.createdAt.toDate ? team.createdAt.toDate() : new Date(team.createdAt);
                   return teamDate.toDateString() === today.toDateString();
                 }).length}</p>
+                <small className="stat-subtitle">New teams today</small>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" onClick={() => setActiveTab('submissions')} style={{ cursor: 'pointer' }}>
                 <h4>Total Submissions</h4>
                 <p className="stat-number">{submissionsData.length}</p>
                 <small className="stat-subtitle">Projects submitted</small>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" onClick={() => setActiveTab('notifiers')} style={{ cursor: 'pointer' }}>
+                <h4>Sent Notifiers</h4>
+                <p className="stat-number">{notifications.length}</p>
+                <small className="stat-subtitle">Team notifications</small>
+              </div>
+              <div className="stat-card" onClick={() => setActiveTab('schedule')} style={{ cursor: 'pointer' }}>
+                <h4>Schedule Events</h4>
+                <p className="stat-number">{scheduleData.length}</p>
+                <small className="stat-subtitle">Planned activities</small>
+              </div>
+              <div className="stat-card" onClick={() => setActiveTab('pages')} style={{ cursor: 'pointer' }}>
+                <h4>Page Visibility</h4>
+                <p className="stat-number">{Object.values(pageVisibilitySettings).filter(visible => visible).length}/{Object.keys(pageVisibilitySettings).length}</p>
+                <small className="stat-subtitle">Pages enabled</small>
+              </div>
+              <div className="stat-card" onClick={() => setActiveTab('countdown')} style={{ cursor: 'pointer' }}>
                 <h4>Event Countdown</h4>
                 <p className="stat-text">{countdownData.title}</p>
                 <small className="stat-subtitle">
@@ -1756,12 +1841,12 @@ function Management() {
                   }
                 </small>
               </div>
-              <div className="stat-card">
-                <h4>Next Scheduled Task</h4>
+              <div className="stat-card" onClick={() => setActiveTab('schedule')} style={{ cursor: 'pointer' }}>
+                <h4>Next Scheduled</h4>
                 <p className="stat-text">{getNextScheduledTask().event}</p>
                 <small className="stat-subtitle">{getNextScheduledTask().time}</small>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" onClick={() => setActiveTab('announcements')} style={{ cursor: 'pointer' }}>
                 <h4>Last Announcement</h4>
                 <p className="stat-text">
                   {announcements.length > 0 ? 
@@ -1776,11 +1861,18 @@ function Management() {
                   }
                 </small>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" onClick={() => setActiveTab('gallery')} style={{ cursor: 'pointer' }}>
+                <h4>Gallery img link</h4>
+                <p className="stat-text">{galleryData.linkEnabled ? 'Active' : 'Disabled'}</p>
+                <small className="stat-subtitle">{galleryData.linkTitle || 'No title set'}</small>
+              </div>
+              <div className="stat-card" style={{ cursor: 'default' }}>
                 <h4>System Status</h4>
                 <p className="stat-status online">Online</p>
+                <small className="stat-subtitle">All services operational</small>
               </div>
             </div>
+
           </div>
         );
       case 'teams':
@@ -2082,11 +2174,26 @@ function Management() {
                 <span className="submissions-count">
                   Showing {filteredSubmissions.length} of {submissionsData.length} submissions
                 </span>
-                <button onClick={fetchSubmissionsData} className="refresh-btn" disabled={loading}>
-                  {loading ? 'Loading...' : 'Refresh'}
-                </button>
+                <div className="submissions-controls">
+                  <button onClick={fetchSubmissionsData} className="refresh-btn" disabled={loading}>
+                    {loading ? 'Loading...' : 'Refresh'}
+                  </button>
+                </div>
               </div>
             </div>
+
+            <label className="toggle-container">
+              <span className="toggle-label">
+                {submissionSettings.enabled ? 'Submissions Enabled' : 'Submissions Disabled'}
+              </span>
+              <input
+                type="checkbox"
+                checked={submissionSettings.enabled}
+                onChange={handleSubmissionSettingsUpdate}
+                disabled={updatingSubmissionSettings}
+              />
+              <span className="toggle-slider"></span>
+            </label>
 
             {/* Search and Filter Section */}
             <div className="search-filter-section">
@@ -2242,17 +2349,19 @@ function Management() {
           <div className="tab-content">
             <div className="announcements-header">
               <h3>Announcements Management</h3>
-              <button 
-                className="add-announcement-btn"
-                onClick={() => setShowAnnouncementForm(true)}
-                disabled={loading}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="12" y1="5" x2="12" y2="19"/>
-                  <line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                Add New Announcement
-              </button>
+              <div className="announcements-controls">
+                <button 
+                  className="add-announcement-btn"
+                  onClick={() => setShowAnnouncementForm(true)}
+                  disabled={loading}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  Add New Announcement
+                </button>
+              </div>
             </div>
 
             {/* Announcement Form Modal */}

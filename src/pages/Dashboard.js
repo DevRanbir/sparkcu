@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import './Dashboard.css';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -8,7 +8,8 @@ import {
   getTeamSubmission,
   updateTeamTopicName,
   getUserNotifications,
-  markNotificationAsRead
+  markNotificationAsRead,
+  getSubmissionSettings
 } from '../services/firebase';
 
 const Dashboard = () => {
@@ -34,11 +35,31 @@ const Dashboard = () => {
   const [topicSaved, setTopicSaved] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [submissionSettings, setSubmissionSettings] = useState({ enabled: true });
 
   // Event date - using useMemo to prevent recreation on every render
   const eventDate = useMemo(() => {
     return countdownConfig.targetDate ? new Date(countdownConfig.targetDate) : new Date('2024-12-15T09:00:00');
   }, [countdownConfig.targetDate]);
+
+  // Fetch user notifications
+  const fetchNotifications = useCallback(async () => {
+    if (!userData?.teamName) return;
+    
+    setLoadingNotifications(true);
+    try {
+      const result = await getUserNotifications(userData.teamName);
+      if (result.success) {
+        setNotifications(result.notifications);
+      } else {
+        console.error('Failed to fetch notifications:', result.message);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  }, [userData?.teamName]);
 
   // Fetch countdown configuration from Firebase
   useEffect(() => {
@@ -86,36 +107,29 @@ const Dashboard = () => {
       }
     };
 
+    const fetchSubmissionSettings = async () => {
+      try {
+        const result = await getSubmissionSettings();
+        if (result.success) {
+          setSubmissionSettings(result.settings);
+        }
+      } catch (error) {
+        console.error('Error fetching submission settings:', error);
+      }
+    };
+
     fetchCountdownConfig();
     fetchAnnouncementsData();
     fetchSubmissionData();
     fetchNotifications();
+    fetchSubmissionSettings();
     
     // Initialize topic name from userData
     if (userData?.topicName) {
       setTopicName(userData.topicName);
       setTopicSaved(true);
     }
-  }, [currentUser, userData]);
-
-  // Fetch user notifications
-  const fetchNotifications = async () => {
-    if (!userData?.teamName) return;
-    
-    setLoadingNotifications(true);
-    try {
-      const result = await getUserNotifications(userData.teamName);
-      if (result.success) {
-        setNotifications(result.notifications);
-      } else {
-        console.error('Failed to fetch notifications:', result.message);
-      }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoadingNotifications(false);
-    }
-  };
+  }, [currentUser, userData, fetchNotifications]);
 
   const handleMarkAsRead = async (notificationId) => {
     try {
@@ -546,8 +560,26 @@ const Dashboard = () => {
                     <span className="status-badge saved">✓ Saved</span>
                   </div>
                 )}
+                {submissionSettings && !submissionSettings.enabled && (
+                  <div className="submission-status">
+                    <span className="status-badge disabled">Submissions Disabled</span>
+                  </div>
+                )}
               </div>
               <div className="submission-form">
+                {submissionSettings && !submissionSettings.enabled && (
+                  <div className="submission-notice">
+                    <p className="notice-text">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                      </svg>
+                      Project submissions are currently disabled by administrators. You can view your submission but cannot make changes at this time.
+                    </p>
+                  </div>
+                )}
+                
                 <div className="form-group topic-name-section">
                   <label htmlFor="topicName">
                     Topic Name
@@ -565,12 +597,13 @@ const Dashboard = () => {
                       }}
                       placeholder="Enter your project topic name"
                       maxLength="100"
+                      disabled={!submissionSettings || !submissionSettings.enabled}
                     />
                     <button 
                       type="button"
                       className={`topic-save-button ${isTopicLoading ? 'loading' : ''} ${topicSaved ? 'saved' : ''}`}
                       onClick={handleSaveTopicName}
-                      disabled={isTopicLoading || !topicName.trim()}
+                      disabled={isTopicLoading || !topicName.trim() || !submissionSettings || !submissionSettings.enabled}
                     >
                       {isTopicLoading ? (
                         'Saving...'
@@ -582,7 +615,7 @@ const Dashboard = () => {
                     </button>
                   </div>
                   <small className="form-hint">
-                    You can update your project topic name anytime untill deadline
+                    You can update your project topic name anytime until deadline
                   </small>
                 </div>
 
@@ -607,6 +640,7 @@ const Dashboard = () => {
                       }}
                       placeholder="https://drive.google.com/file/d/your-presentation-id/view"
                       required
+                      disabled={!submissionSettings || !submissionSettings.enabled}
                     />
                     {presentationLink && (
                       <button 
@@ -647,6 +681,7 @@ const Dashboard = () => {
                             }
                           }}
                           placeholder={`Enter your ${link.label.toLowerCase()} URL`}
+                          disabled={!submissionSettings || !submissionSettings.enabled}
                         />
                         {link.url && (
                           <button 
@@ -670,7 +705,7 @@ const Dashboard = () => {
                 <button 
                   className={`save-button ${isSubmissionLoading ? 'loading' : ''} ${submissionSaved ? 'saved' : ''}`} 
                   onClick={handleSaveLinks}
-                  disabled={isSubmissionLoading}
+                  disabled={isSubmissionLoading || !submissionSettings || !submissionSettings.enabled}
                 >
                   {isSubmissionLoading ? (
                     <>
@@ -690,11 +725,16 @@ const Dashboard = () => {
                         <polyline points="17,21 17,13 7,13 7,21"/>
                         <polyline points="7,3 7,8 15,8"/>
                       </svg>
-                      Save Submission Links
+                      {(!submissionSettings || !submissionSettings.enabled) ? 'Submissions Disabled' : 'Save Submission Links'}
                     </>
                   )}
                 </button>
-                <p className="card-subtitle">Click the above button to submit your project links and resources. <br />You can also update your topic name separately above. <br /> Once submitted, you can edit freely until the deadline.</p>
+                <p className="card-subtitle">
+                  {(!submissionSettings || !submissionSettings.enabled) 
+                    ? 'Submissions are currently disabled. Contact administrators for more information.'
+                    : 'Click the above button to submit your project links and resources. You can also update your topic name separately above. Once submitted, you can edit freely until the deadline.'
+                  }
+                </p>
               </div>
             </div>
           </div>

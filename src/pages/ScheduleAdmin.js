@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getScheduleData, addScheduleItem, updateScheduleItem, clearScheduleData, initializeScheduleData, isAdminLoggedIn } from '../services/firebase';
+import { getScheduleData, addScheduleItem, updateScheduleItem, deleteScheduleItem, clearScheduleData, initializeScheduleData, isAdminLoggedIn, createAutoAnnouncement } from '../services/firebase';
 import './ScheduleAdmin.css';
 
 const ScheduleAdmin = () => {
@@ -84,6 +84,49 @@ const ScheduleAdmin = () => {
       type: item.type,
       timeOrder: item.timeOrder
     });
+  };
+
+  const handleSendAnnouncement = async (item) => {
+    if (window.confirm(`Send announcement for "${item.event}" at ${item.time}?`)) {
+      setLoading(true);
+      try {
+        const result = await createAutoAnnouncement(item);
+        if (result.success) {
+          alert('Announcement sent successfully!');
+        } else {
+          alert('Error sending announcement: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error sending announcement:', error);
+        alert('Error sending announcement');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleDelete = async (item) => {
+    if (window.confirm(`Are you sure you want to delete "${item.event}" at ${item.time}? This action cannot be undone.`)) {
+      setLoading(true);
+      try {
+        const result = await deleteScheduleItem(item.id);
+        if (result.success) {
+          await loadScheduleData();
+          alert('Schedule item deleted successfully!');
+          // If we're editing this item, clear the form
+          if (editingItem && editingItem.id === item.id) {
+            resetForm();
+          }
+        } else {
+          alert('Error deleting schedule item: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error deleting schedule item:', error);
+        alert('Error deleting schedule item');
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   const resetForm = () => {
@@ -310,6 +353,20 @@ const ScheduleAdmin = () => {
                   </div>
                   <div className="item-actions">
                     <button onClick={() => handleEdit(item)}>Edit</button>
+                    <button 
+                      onClick={() => handleSendAnnouncement(item)}
+                      className="announce-btn"
+                      disabled={loading}
+                    >
+                      Announce
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(item)}
+                      className="delete-btn"
+                      disabled={loading}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}
