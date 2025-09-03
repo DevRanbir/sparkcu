@@ -22,6 +22,7 @@ import {
   updatePageVisibilitySettings,
   getNotifications,
   addNotifications,
+  updateNotifications,
   deleteNotification,
   getTeamNotificationHistory,
   clearTeamNotifications,
@@ -104,6 +105,24 @@ function Management() {
   const [uploadingNotifications, setUploadingNotifications] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const [downloadHistory, setDownloadHistory] = useState([]);
+  
+  // Custom message popup state
+  const [showCustomMessagePopup, setShowCustomMessagePopup] = useState(false);
+  const [customMessageForm, setCustomMessageForm] = useState({
+    selectedTeams: [],
+    message: ''
+  });
+  const [sendingCustomMessage, setSendingCustomMessage] = useState(false);
+  const [teamSearchTerm, setTeamSearchTerm] = useState('');
+  const [showTeamDropdown, setShowTeamDropdown] = useState(false);
+  
+  // Edit notification state
+  const [showEditNotificationPopup, setShowEditNotificationPopup] = useState(false);
+  const [editingNotification, setEditingNotification] = useState(null);
+  const [editNotificationForm, setEditNotificationForm] = useState({
+    message: ''
+  });
+  const [updatingNotification, setUpdatingNotification] = useState(false);
   
   const navigate = useNavigate();
 
@@ -886,7 +905,30 @@ function Management() {
 
     if (!file.name.toLowerCase().endsWith('.xlsx') && !file.name.toLowerCase().endsWith('.xls')) {
       alert('Please upload an Excel file (.xlsx or .xls)');
+      event.target.value = '';
       return;
+    }
+
+    // Check file consistency with last downloaded template
+    const lastDownloadedTemplate = localStorage.getItem('lastDownloadedTemplate');
+    if (lastDownloadedTemplate) {
+      const uploadedBaseName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+      const downloadedBaseName = lastDownloadedTemplate.replace(/\.[^/.]+$/, "").replace(/_\d{4}-\d{2}-\d{2}_.*/, ""); // Remove date/time suffix
+      
+      if (!uploadedBaseName.startsWith(downloadedBaseName.replace(/_\d{4}-\d{2}-\d{2}.*/, ""))) {
+        const proceedAnyway = window.confirm(
+          `⚠️ File Consistency Warning!\n\n` +
+          `Expected file based on last download: ${lastDownloadedTemplate}\n` +
+          `Uploaded file: ${file.name}\n\n` +
+          `For consistency, please use the last downloaded template.\n\n` +
+          `Do you want to proceed anyway? (Not recommended)`
+        );
+        
+        if (!proceedAnyway) {
+          event.target.value = '';
+          return;
+        }
+      }
     }
 
     setUploadingNotifications(true);
@@ -906,194 +948,535 @@ function Management() {
             return;
           }
 
-          // Check for required columns (case-insensitive)
+          // Check for required columns
           const firstRow = jsonData[0];
-          const headers = Object.keys(firstRow).map(h => h.toLowerCase());
+          const headers = Object.keys(firstRow);
           
-          if (!headers.includes('team name') && !headers.includes('teamname')) {
+          if (!headers.find(h => h.toLowerCase().includes('team name'))) {
             alert('Excel file must contain a "Team Name" column');
             return;
           }
 
-          if (!headers.includes('notification')) {
-            alert('Excel file must contain a "Notification" column');
+          if (!headers.find(h => h.toLowerCase().includes('leader name'))) {
+            alert('Excel file must contain a "Leader Name" column');
             return;
           }
 
-          // Get registered team names for validation
-          const registeredTeamNames = teams.map(team => team.teamName.toLowerCase());
+          // Determine format type based on timestamp columns
+          const isHistoricalFormat = headers.some(h => h.match(/^\d{1,2}\/\d{1,2}\/\d{4}_\d{1,2}-\d{1,2}-\d{1,2}$/)); // DD/MM/YYYY_HH-MM-SS format
+          const isSimpleFormat = !isHistoricalFormat;
+
+          // Get registered teams for validation
+          const registeredTeams = teams.map(team => ({
+            name: team.teamName,
+            leader: team.leaderName || 'N/A'
+          }));
           
           // Process notifications data
           const notificationsToAdd = [];
+          const notificationsToUpdate = [];
           const invalidTeams = [];
-          const emptyNotifications = [];
+          const leaderMismatches = [];
+          let processedTeams = 0;
+          
+          console.log('Processing format:', isHistoricalFormat ? 'Historical (TABLE 2)' : 'Simple (TABLE 1)');
           
           jsonData.forEach((row, index) => {
-            const teamName = (row['Team Name'] || row['TeamName'] || row['team name'] || row['teamname'] || '').toString().trim();
-            const notification = (row['Notification'] || row['notification'] || '').toString().trim();
+            const teamName = (row['Team Name'] || '').toString().trim();
+            const leaderName = (row['Leader Name'] || '').toString().trim();
             
             if (!teamName) {
-              emptyNotifications.push(`Row ${index + 2}: Missing team name`);
-              return;
+              return; // Skip empty rows
             }
             
-            if (!notification) {
-              emptyNotifications.push(`Row ${index + 2}: Missing notification for ${teamName}`);
-              return;
-            }
+            // Find registered team (case-insensitive)
+            const registeredTeam = registeredTeams.find(team => 
+              team.name.toLowerCase() === teamName.toLowerCase()
+            );
             
-            // Check if team is registered
-            if (!registeredTeamNames.includes(teamName.toLowerCase())) {
+            if (!registeredTeam) {
               invalidTeams.push(teamName);
               return;
             }
             
-            // Find the correct case team name from registered teams
-            const correctTeamName = teams.find(team => 
-              team.teamName.toLowerCase() === teamName.toLowerCase()
-            )?.teamName || teamName;
+            // Check leader name consistency (optional warning)
+            if (leaderName && registeredTeam.leader !== 'N/A' && 
+                leaderName.toLowerCase() !== registeredTeam.leader.toLowerCase()) {
+              leaderMismatches.push(`${teamName}: Expected "${registeredTeam.leader}", got "${leaderName}"`);
+            }
             
-            notificationsToAdd.push({
-              teamName: correctTeamName,
-              notification: notification
-            });
+            let hasNotifications = false;
+            
+            if (isSimpleFormat) {
+              // TABLE 1: Single timestamp column
+              const timestampColumns = headers.filter(h => h !== 'Team Name' && h !== 'Leader Name');
+              
+              timestampColumns.forEach(timestampColumn => {
+                const notification = (row[timestampColumn] || '').toString().trim();
+                if (notification) {
+                  // Split multiple notifications by " | "
+                  const notifications = notification.split(' | ').map(n => n.trim()).filter(n => n);
+                  
+                  notifications.forEach(notif => {
+                    // Parse timestamp from column header for proper dating
+                    const parsedTimestamp = parseTimestampFromHeader(timestampColumn);
+                    
+                    notificationsToAdd.push({
+                      teamName: registeredTeam.name, // Use correct case
+                      notification: notif,
+                      customTimestamp: parsedTimestamp
+                    });
+                    hasNotifications = true;
+                  });
+                }
+              });
+            } else {
+              // TABLE 2: Multiple timestamp columns (DD/MM/YYYY_HH-MM-SS format)
+              const timestampColumns = headers.filter(h => h.match(/^\d{1,2}\/\d{1,2}\/\d{4}_\d{1,2}-\d{1,2}-\d{1,2}$/));
+              
+              timestampColumns.forEach(timestampColumn => {
+                const notification = (row[timestampColumn] || '').toString().trim();
+                if (notification) {
+                  // Split multiple notifications by " | "
+                  const notifications = notification.split(' | ').map(n => n.trim()).filter(n => n);
+                  
+                  notifications.forEach(notif => {
+                    // Check if this is an update (has [ID:xxx] prefix) or new notification
+                    const idMatch = notif.match(/^\[ID:([^\]]+)\](.*)$/);
+                    const parsedTimestamp = parseTimestampFromHeader(timestampColumn);
+                    
+                    if (idMatch) {
+                      // This is an update to existing notification
+                      const notificationId = idMatch[1];
+                      const updatedText = idMatch[2].trim();
+                      
+                      if (updatedText) { // Only update if there's actual text
+                        notificationsToUpdate.push({
+                          teamName: registeredTeam.name,
+                          notificationId: notificationId,
+                          newNotification: updatedText,
+                          originalTimestamp: parsedTimestamp
+                        });
+                        hasNotifications = true;
+                      }
+                    } else {
+                      // This is a new notification
+                      if (notif) { // Only add if there's actual text
+                        notificationsToAdd.push({
+                          teamName: registeredTeam.name,
+                          notification: notif,
+                          customTimestamp: parsedTimestamp
+                        });
+                        hasNotifications = true;
+                      }
+                    }
+                  });
+                }
+              });
+            }
+            
+            if (hasNotifications) {
+              processedTeams++;
+            }
           });
+          
+          // Helper function to parse timestamp from column header
+          function parseTimestampFromHeader(header) {
+            try {
+              if (header.includes('_')) {
+                // Historical format: DD/MM/YYYY_HH-MM-SS
+                const [datePart, timePart] = header.split('_');
+                const [day, month, year] = datePart.split('/').map(Number);
+                const [hours, minutes, seconds] = timePart.split('-').map(Number);
+                return new Date(year, month - 1, day, hours, minutes, seconds || 0);
+              } else {
+                // Simple format: DD/MM/YYYY
+                const [day, month, year] = header.split('/').map(Number);
+                return new Date(year, month - 1, day);
+              }
+            } catch (error) {
+              console.warn('Failed to parse timestamp from header:', header);
+              return new Date(); // Fallback to current time
+            }
+          }
 
           // Show validation results
-          let validationMessage = '';
+          let warningMessage = '';
           if (invalidTeams.length > 0) {
-            validationMessage += `⚠️ Unregistered teams found (will be skipped):\n${invalidTeams.join(', ')}\n\n`;
+            warningMessage += `⚠️ Unregistered teams (will be skipped):\n${[...new Set(invalidTeams)].join(', ')}\n\n`;
           }
-          if (emptyNotifications.length > 0) {
-            validationMessage += `⚠️ Empty data found:\n${emptyNotifications.join('\n')}\n\n`;
-          }
-          
-          if (notificationsToAdd.length === 0) {
-            alert('No valid notifications found in the Excel file.\n\n' + validationMessage);
-            return;
-          }
-
-          // Show confirmation with validation results
-          const confirmMessage = `${validationMessage}Found ${notificationsToAdd.length} valid notifications.\n\nDo you want to proceed with uploading?`;
-          
-          if (validationMessage && !window.confirm(confirmMessage)) {
-            return;
-          }
-
-          // Upload to Firebase
-          const result = await addNotifications(notificationsToAdd);
-          if (result.success) {
-            let successMessage = `✅ ${notificationsToAdd.length} notifications uploaded successfully!`;
-            if (invalidTeams.length > 0) {
-              successMessage += `\n\n⚠️ ${invalidTeams.length} unregistered teams were skipped.`;
+          if (leaderMismatches.length > 0) {
+            warningMessage += `⚠️ Leader name mismatches:\n${leaderMismatches.slice(0, 5).join('\n')}`;
+            if (leaderMismatches.length > 5) {
+              warningMessage += `\n... and ${leaderMismatches.length - 5} more`;
             }
-            alert(successMessage);
-            fetchNotifications(); // Refresh the notifications list
-          } else {
-            alert('Error uploading notifications: ' + result.message);
+            warningMessage += '\n\n';
           }
-        } catch (parseError) {
-          console.error('Error parsing Excel file:', parseError);
-          alert('Error parsing Excel file. Please check the format.');
-        } finally {
-          setUploadingNotifications(false);
+          
+          const totalOperations = notificationsToAdd.length + notificationsToUpdate.length;
+          
+          if (totalOperations === 0) {
+            alert('No valid notifications found in the Excel file.\n\n' + warningMessage);
+            return;
+          }
+
+          // Show confirmation
+          const confirmMessage = 
+            `📊 Upload Summary:\n` +
+            `• Format: ${isHistoricalFormat ? 'Historical (TABLE 2)' : 'Simple (TABLE 1)'}\n` +
+            `• Teams processed: ${processedTeams}\n` +
+            `• New notifications: ${notificationsToAdd.length}\n` +
+            `• Updated notifications: ${notificationsToUpdate.length}\n\n` +
+            `${warningMessage}` +
+            `Do you want to proceed with ${totalOperations} operations?`;
+          
+          if (!window.confirm(confirmMessage)) {
+            return;
+          }
+
+          // Process updates first (if any)
+          let updateResults = { success: true, updatedCount: 0, errors: [] };
+          if (notificationsToUpdate.length > 0) {
+            updateResults = await updateNotifications(notificationsToUpdate);
+          }
+
+          // Process new notifications
+          let addResults = { success: true, addedCount: 0 };
+          if (notificationsToAdd.length > 0) {
+            addResults = await addNotifications(notificationsToAdd);
+          }
+
+          // Show combined results
+          if (updateResults.success && addResults.success) {
+            // Update last uploaded file info
+            localStorage.setItem('lastUploadedFile', file.name);
+            localStorage.setItem('lastUploadTime', new Date().toISOString());
+            
+            // Show success message
+            const teamBreakdown = {};
+            notificationsToAdd.forEach(notif => {
+              teamBreakdown[notif.teamName] = (teamBreakdown[notif.teamName] || [0, 0]);
+              teamBreakdown[notif.teamName][0] += 1; // New notifications
+            });
+            notificationsToUpdate.forEach(notif => {
+              teamBreakdown[notif.teamName] = (teamBreakdown[notif.teamName] || [0, 0]);
+              teamBreakdown[notif.teamName][1] += 1; // Updated notifications
+            });
+            
+            const breakdownText = Object.entries(teamBreakdown)
+              .map(([team, counts]) => {
+                const [newCount, updateCount] = counts;
+                const parts = [];
+                if (newCount > 0) parts.push(`${newCount} new`);
+                if (updateCount > 0) parts.push(`${updateCount} updated`);
+                return `• ${team}: ${parts.join(', ')}`;
+              })
+              .join('\n');
+            
+            const successMessage = 
+              `✅ Upload Successful!\n\n` +
+              `${notificationsToAdd.length} new notifications added\n` +
+              `${updateResults.updatedCount || 0} notifications updated\n\n` +
+              `Breakdown:\n${breakdownText}`;
+            
+            alert(successMessage);
+            
+            // Refresh notifications list
+            await fetchNotifications();
+          } else {
+            let errorMessage = 'Some operations failed:\n\n';
+            if (!addResults.success) {
+              errorMessage += `• Error adding new notifications: ${addResults.message}\n`;
+            }
+            if (!updateResults.success) {
+              errorMessage += `• Error updating notifications: ${updateResults.errors.join(', ')}\n`;
+            }
+            alert(errorMessage);
+          }
+        } catch (error) {
+          console.error('Error processing file:', error);
+          alert('Error processing Excel file: ' + error.message);
         }
       };
+
       reader.readAsArrayBuffer(file);
     } catch (error) {
       console.error('Error reading file:', error);
-      alert('Error reading file');
+      alert('Error reading file: ' + error.message);
+    } finally {
       setUploadingNotifications(false);
+      // Reset file input
+      event.target.value = '';
     }
-
-    // Reset file input
-    event.target.value = '';
   };
 
   const downloadNotificationTemplate = async () => {
     setDownloadingTemplate(true);
     try {
-      // Get all registered team names
-      const registeredTeamNames = teams.map(team => team.teamName).sort();
+      // Get all registered teams with leader names
+      const teamsData = teams.map(team => ({
+        teamName: team.teamName,
+        leaderName: team.leaderName || 'N/A'
+      })).sort((a, b) => a.teamName.localeCompare(b.teamName));
+
+      // Check if there are any existing notifications
+      const hasExistingNotifications = notifications.length > 0;
       
-      // Create template data with real team names and empty notification column
-      const templateData = registeredTeamNames.map(teamName => ({
-        'Team Name': teamName,
-        'Notification': ''
-      }));
+      let templateData = [];
+      let metaData = [];
+      let filename = '';
+      let sortedTimestamps = []; // Declare in broader scope
+      
+      if (!hasExistingNotifications) {
+        // TABLE 1: Simple format for first time use
+        const currentDateTime = new Date();
+        const dateTimeString = `${currentDateTime.toLocaleDateString('en-GB')}_${currentDateTime.toLocaleTimeString('en-GB', { hour12: false }).replace(/:/g, '-')}`;
+        
+        templateData = teamsData.map(team => ({
+          'Team Name': team.teamName,
+          'Leader Name': team.leaderName,
+          [dateTimeString]: '' // Empty by default
+        }));
+        
+        filename = `Notifications_Template_${currentDateTime.toISOString().split('T')[0]}_${currentDateTime.toTimeString().split(' ')[0].replace(/:/g, '-')}.xlsx`;
+      } else {
+        // TABLE 2: Historical format with timestamp columns
+        
+        // Get all unique date-time combinations from existing notifications
+        const notificationTimestamps = new Set();
+        const notificationMetaMap = new Map(); // Store notification metadata
+        
+        notifications.forEach(notif => {
+          if (notif.createdAt) {
+            const date = notif.createdAt.toDate ? notif.createdAt.toDate() : new Date(notif.createdAt);
+            const dateTimeString = `${date.toLocaleDateString('en-GB')}_${date.toLocaleTimeString('en-GB', { hour12: false }).replace(/:/g, '-')}`;
+            notificationTimestamps.add(dateTimeString);
+            
+            // Store metadata for this timestamp
+            if (!notificationMetaMap.has(dateTimeString)) {
+              notificationMetaMap.set(dateTimeString, {
+                fullDateTime: date.toLocaleString('en-GB'),
+                originalTimestamp: date.getTime(),
+                notificationIds: []
+              });
+            }
+            
+            // Store notification ID for tracking updates
+            if (notif.id) {
+              notificationMetaMap.get(dateTimeString).notificationIds.push({
+                teamName: notif.teamName,
+                notificationId: notif.id,
+                originalText: notif.notification
+              });
+            }
+          }
+        });
+        
+        // Sort timestamps chronologically
+        sortedTimestamps = Array.from(notificationTimestamps).sort((a, b) => {
+          const timestampA = notificationMetaMap.get(a).originalTimestamp;
+          const timestampB = notificationMetaMap.get(b).originalTimestamp;
+          return timestampA - timestampB;
+        });
+        
+        // Add current date-time as the latest column (empty by default for new notifications)
+        const currentDateTime = new Date();
+        const currentTimestampString = `${currentDateTime.toLocaleDateString('en-GB')}_${currentDateTime.toLocaleTimeString('en-GB', { hour12: false }).replace(/:/g, '-')}`;
+        if (!sortedTimestamps.includes(currentTimestampString)) {
+          sortedTimestamps.push(currentTimestampString);
+          notificationMetaMap.set(currentTimestampString, {
+            fullDateTime: currentDateTime.toLocaleString('en-GB'),
+            originalTimestamp: currentDateTime.getTime(),
+            notificationIds: []
+          });
+        }
+        
+        // Organize notifications by team and timestamp
+        const teamNotifications = {};
+        teamsData.forEach(team => {
+          teamNotifications[team.teamName] = {};
+          sortedTimestamps.forEach(timestamp => {
+            teamNotifications[team.teamName][timestamp] = [];
+          });
+        });
+        
+        // Fill in existing notifications with their IDs for tracking
+        notifications.forEach(notif => {
+          if (notif.createdAt && teamNotifications[notif.teamName]) {
+            const date = notif.createdAt.toDate ? notif.createdAt.toDate() : new Date(notif.createdAt);
+            const timestampString = `${date.toLocaleDateString('en-GB')}_${date.toLocaleTimeString('en-GB', { hour12: false }).replace(/:/g, '-')}`;
+            if (teamNotifications[notif.teamName][timestampString]) {
+              // Include notification ID for tracking updates
+              const notificationWithId = notif.id ? `[ID:${notif.id}]${notif.notification}` : notif.notification;
+              teamNotifications[notif.teamName][timestampString].push(notificationWithId);
+            }
+          }
+        });
+        
+        // Create template data
+        templateData = teamsData.map(team => {
+          const row = {
+            'Team Name': team.teamName,
+            'Leader Name': team.leaderName
+          };
+          
+          sortedTimestamps.forEach(timestamp => {
+            const notifications = teamNotifications[team.teamName][timestamp] || [];
+            row[timestamp] = notifications.join(' | '); // Join multiple notifications with " | "
+          });
+          
+          return row;
+        });
+        
+        // Create metadata sheet for timestamp mapping
+        metaData = sortedTimestamps.map(timestamp => ({
+          'Column Header': timestamp,
+          'Full Date Time': notificationMetaMap.get(timestamp).fullDateTime,
+          'Timestamp': notificationMetaMap.get(timestamp).originalTimestamp,
+          'Purpose': timestamp === currentTimestampString ? 'NEW NOTIFICATIONS (Add here)' : 'Historical data (Can be edited)',
+          'Note': 'Use [ID:xxx] prefix to update existing notifications, or add new text for new notifications'
+        }));
+        
+        filename = `Notifications_Historical_${currentDateTime.toISOString().split('T')[0]}_${currentDateTime.toTimeString().split(' ')[0].replace(/:/g, '-')}.xlsx`;
+      }
 
       // If no teams are registered, add example data
       if (templateData.length === 0) {
-        templateData.push(
-          { 'Team Name': 'Example Team 1', 'Notification': 'Your submission has been received successfully.' },
-          { 'Team Name': 'Example Team 2', 'Notification': 'Please update your presentation link by tomorrow.' },
-          { 'Team Name': 'Example Team 3', 'Notification': 'Congratulations! You have been selected for the next round.' }
-        );
+        if (!hasExistingNotifications) {
+          // Example for TABLE 1
+          const exampleDateTime = new Date();
+          const exampleTimestamp = `${exampleDateTime.toLocaleDateString('en-GB')}_${exampleDateTime.toLocaleTimeString('en-GB', { hour12: false }).replace(/:/g, '-')}`;
+          templateData = [
+            { 'Team Name': 'CoreTeam', 'Leader Name': 'Ranbir Khurana', [exampleTimestamp]: '' },
+            { 'Team Name': 'CoreTeam2', 'Leader Name': 'John Doe', [exampleTimestamp]: '' }
+          ];
+        } else {
+          // Example for TABLE 2
+          const example1 = '01/09/2025_09-30-00';
+          const example2 = '02/09/2025_14-15-30';
+          const example3 = '03/09/2025_10-00-00';
+          templateData = [
+            { 
+              'Team Name': 'CoreTeam', 
+              'Leader Name': 'Ranbir Khurana',
+              [example1]: '[ID:notif1]Updated notification text',
+              [example2]: 'Historical notification',
+              [example3]: 'New notification here' // Current timestamp column
+            },
+            { 
+              'Team Name': 'CoreTeam2', 
+              'Leader Name': 'John Doe',
+              [example1]: '[ID:notif2]Another updated notification',
+              [example2]: 'Historical notification for team 2',
+              [example3]: '' // Current timestamp column (empty by default)
+            }
+          ];
+          
+          metaData = [
+            { 'Column Header': example1, 'Full Date Time': '01/09/2025, 09:30:00', 'Timestamp': 1725174600000, 'Purpose': 'Historical data (Can be edited)', 'Note': 'Use [ID:xxx] prefix to update existing notifications' },
+            { 'Column Header': example2, 'Full Date Time': '02/09/2025, 14:15:30', 'Timestamp': 1725278130000, 'Purpose': 'Historical data (Can be edited)', 'Note': 'Use [ID:xxx] prefix to update existing notifications' },
+            { 'Column Header': example3, 'Full Date Time': '03/09/2025, 10:00:00', 'Timestamp': 1725350400000, 'Purpose': 'NEW NOTIFICATIONS (Add here)', 'Note': 'Add new notification text without ID prefix' }
+          ];
+        }
+        filename = `Notifications_Example_${new Date().toISOString().split('T')[0]}.xlsx`;
       }
 
-      // Include existing notifications as history with download tracking
-      const existingNotifications = notifications.map(notif => ({
-        'Team Name': notif.teamName,
-        'Notification': notif.notification,
-        'Created Date': notif.createdAt ? 
-          (notif.createdAt.toDate ? 
-            notif.createdAt.toDate().toLocaleString() : 
-            new Date(notif.createdAt).toLocaleString()
-          ) : 'N/A',
-        'Download History': notif.downloadHistory ? 
-          notif.downloadHistory.map(date => new Date(date).toLocaleString()).join('; ') : 
-          'Not downloaded yet'
-      }));
+      // Create Excel workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Add main notifications sheet
+      const ws = XLSX.utils.json_to_sheet(templateData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Notifications');
 
-      // Create workbook
-      const workbook = XLSX.utils.book_new();
-      
-      // Add template sheet with real team names
-      const templateWorksheet = XLSX.utils.json_to_sheet(templateData);
-      XLSX.utils.book_append_sheet(workbook, templateWorksheet, 'Template');
-      
-      // Add registered teams info sheet
-      const teamsInfoData = teams.map(team => ({
-        'Team Name': team.teamName,
-        'Leader Name': team.leaderName,
-        'Leader Email': team.leaderEmail,
-        'Academic Year': team.academicYear,
-        'Members Count': team.members ? team.members.length : 0,
-        'Registration Date': team.createdAt ? 
-          (team.createdAt.toDate ? 
-            team.createdAt.toDate().toLocaleDateString() : 
-            new Date(team.createdAt).toLocaleDateString()
-          ) : 'N/A',
-        'Email Verified': team.emailVerified ? 'Yes' : 'No'
-      }));
-      
-      if (teamsInfoData.length > 0) {
-        const teamsInfoWorksheet = XLSX.utils.json_to_sheet(teamsInfoData);
-        XLSX.utils.book_append_sheet(workbook, teamsInfoWorksheet, 'Teams Info');
-      }
-      
-      // Add history sheet if there are existing notifications
-      if (existingNotifications.length > 0) {
-        const historyWorksheet = XLSX.utils.json_to_sheet(existingNotifications);
-        XLSX.utils.book_append_sheet(workbook, historyWorksheet, 'History');
+      // Add metadata sheet for timestamp mapping (if historical format)
+      if (hasExistingNotifications && metaData.length > 0) {
+        const metaWs = XLSX.utils.json_to_sheet(metaData);
+        XLSX.utils.book_append_sheet(wb, metaWs, 'Timestamp Info');
+        
+        // Style metadata sheet
+        const metaHeaderRange = XLSX.utils.decode_range(metaWs['!ref']);
+        for (let col = metaHeaderRange.s.c; col <= metaHeaderRange.e.c; col++) {
+          const headerCell = XLSX.utils.encode_cell({ r: 0, c: col });
+          if (metaWs[headerCell]) {
+            metaWs[headerCell].s = {
+              font: { bold: true },
+              fill: { fgColor: { rgb: "FFEEAA" } }
+            };
+          }
+        }
+        
+        // Set metadata column widths
+        metaWs['!cols'] = [
+          { wch: 20 }, // Column Header
+          { wch: 25 }, // Full Date Time
+          { wch: 15 }, // Timestamp
+          { wch: 30 }, // Purpose
+          { wch: 40 }  // Note
+        ];
       }
 
-      // Generate filename with timestamp
-      const currentDate = new Date().toISOString().split('T')[0];
-      const currentTime = new Date().toTimeString().split(' ')[0].replace(/:/g, '-');
-      const filename = `Notifications_Template_${currentDate}_${currentTime}.xlsx`;
+      // Add instructions sheet
+      const instructions = [
+        { 'Step': 1, 'Instruction': hasExistingNotifications ? 'This is a HISTORICAL format with timestamp columns' : 'This is a SIMPLE format for first-time use' },
+        { 'Step': 2, 'Instruction': hasExistingNotifications ? 'To UPDATE existing notifications, keep the [ID:xxx] prefix and modify the text after it' : 'Fill in notifications in the date-time column' },
+        { 'Step': 3, 'Instruction': hasExistingNotifications ? 'To ADD new notifications, add text in the latest timestamp column (rightmost) WITHOUT [ID:] prefix' : 'Use " | " (space-pipe-space) to separate multiple notifications' },
+        { 'Step': 4, 'Instruction': 'Use " | " (space-pipe-space) to separate multiple notifications for the same timestamp' },
+        { 'Step': 5, 'Instruction': 'Save and upload the file back to the system' },
+        { 'Step': '', 'Instruction': '' },
+        { 'Step': 'IMPORTANT', 'Instruction': hasExistingNotifications ? 'Check "Timestamp Info" sheet to understand column meanings' : 'Each new download creates a new timestamp column for historical tracking' },
+        { 'Step': 'WARNING', 'Instruction': 'Only registered team names will be processed during upload' }
+      ];
+      
+      const instructionsWs = XLSX.utils.json_to_sheet(instructions);
+      XLSX.utils.book_append_sheet(wb, instructionsWs, 'Instructions');
 
-      // Download
-      XLSX.writeFile(workbook, filename);
-      
-      // Track download in Firebase (update existing notifications with download timestamp)
-      const downloadTimestamp = new Date().toISOString();
-      await updateNotificationDownloadHistory(downloadTimestamp);
-      
-      alert(`Template downloaded successfully!\nFile: ${filename}\nContains ${registeredTeamNames.length} registered teams`);
+      // Style the main notifications sheet header row
+      const headerRange = XLSX.utils.decode_range(ws['!ref']);
+      for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+        const headerCell = XLSX.utils.encode_cell({ r: 0, c: col });
+        if (ws[headerCell]) {
+          ws[headerCell].s = {
+            font: { bold: true },
+            fill: { fgColor: { rgb: "EEEEEE" } }
+          };
+        }
+      }
+
+      // Set column widths for main sheet
+      const columnWidths = [];
+      const headers = Object.keys(templateData[0] || {});
+      headers.forEach((header, index) => {
+        if (index < 2) { // Team Name and Leader Name
+          columnWidths.push({ wch: 20 });
+        } else { // Timestamp columns
+          columnWidths.push({ wch: 35 });
+        }
+      });
+      ws['!cols'] = columnWidths;
+
+      // Download the file
+      XLSX.writeFile(wb, filename);
+
+      // Record download history with enhanced tracking
+      localStorage.setItem('lastDownloadedTemplate', filename);
+      localStorage.setItem('lastDownloadTime', new Date().toISOString());
+      localStorage.setItem('lastDownloadFormat', hasExistingNotifications ? 'historical' : 'simple');
+      localStorage.setItem('lastDownloadTimestamps', hasExistingNotifications ? JSON.stringify(sortedTimestamps || []) : '[]');
+      await addDownloadHistory({
+        filename: filename,
+        teamCount: teamsData.length,
+        notificationCount: notifications.length,
+        templateType: hasExistingNotifications ? 'historical' : 'simple',
+        adminId: 'admin'
+      });
+
+      // Store the last downloaded filename for consistency checking
+      localStorage.setItem('lastDownloadedTemplate', filename);
+
+      alert(`Template downloaded successfully!\nFilename: ${filename}\nFormat: ${hasExistingNotifications ? 'Historical (TABLE 2)' : 'Simple (TABLE 1)'}`);
     } catch (error) {
       console.error('Error generating template:', error);
-      alert('Error generating template');
+      alert('Error generating template: ' + error.message);
     } finally {
       setDownloadingTemplate(false);
     }
@@ -1103,7 +1486,24 @@ function Management() {
     if (window.confirm('Are you sure you want to delete this notification?')) {
       setLoading(true);
       try {
-        const result = await deleteNotification(notificationId);
+        console.log('Deleting notification with ID:', notificationId);
+        
+        // Find the notification in our local state to get the correct team info
+        const notification = notifications.find(notif => notif.id === notificationId);
+        if (!notification) {
+          console.error('Notification not found in local state');
+          alert('Notification not found. Please refresh the page.');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Found notification for deletion:', notification);
+        
+        // Use the teamId and notificationIndex from the notification object
+        const actualNotificationId = `${notification.teamId}_${notification.notificationIndex}`;
+        console.log('Using actual notification ID for deletion:', actualNotificationId);
+        
+        const result = await deleteNotification(actualNotificationId);
         if (result.success) {
           alert('Notification deleted successfully!');
           fetchNotifications(); // Refresh the list
@@ -1117,6 +1517,170 @@ function Management() {
         setLoading(false);
       }
     }
+  };
+
+  // ========== CUSTOM MESSAGE FUNCTIONS ==========
+  
+  const handleSendCustomMessage = () => {
+    setShowCustomMessagePopup(true);
+    setCustomMessageForm({
+      selectedTeams: [],
+      message: ''
+    });
+    setTeamSearchTerm('');
+    setShowTeamDropdown(false);
+  };
+
+  const handleCustomMessageTeamToggle = (teamName) => {
+    setCustomMessageForm(prev => ({
+      ...prev,
+      selectedTeams: prev.selectedTeams.includes(teamName)
+        ? prev.selectedTeams.filter(team => team !== teamName)
+        : [...prev.selectedTeams, teamName]
+    }));
+  };
+
+  const handleSelectAllTeams = () => {
+    const filteredTeams = getFilteredTeams();
+    const allFilteredTeamNames = filteredTeams.map(team => team.teamName);
+    setCustomMessageForm(prev => ({
+      ...prev,
+      selectedTeams: prev.selectedTeams.length === allFilteredTeamNames.length ? [] : allFilteredTeamNames
+    }));
+  };
+
+  const getFilteredTeams = () => {
+    if (!teamSearchTerm.trim()) {
+      return teams;
+    }
+    return teams.filter(team =>
+      team.teamName.toLowerCase().includes(teamSearchTerm.toLowerCase()) ||
+      team.leaderName.toLowerCase().includes(teamSearchTerm.toLowerCase())
+    );
+  };
+
+  const handleTeamSearchChange = (e) => {
+    setTeamSearchTerm(e.target.value);
+    setShowTeamDropdown(true);
+  };
+
+  const handleTeamSearchFocus = () => {
+    setShowTeamDropdown(true);
+  };
+
+  const handleTeamSearchBlur = () => {
+    // Delay hiding to allow clicking on dropdown items
+    setTimeout(() => setShowTeamDropdown(false), 200);
+  };
+
+  const handleAddTeamFromSearch = (teamName) => {
+    if (!customMessageForm.selectedTeams.includes(teamName)) {
+      setCustomMessageForm(prev => ({
+        ...prev,
+        selectedTeams: [...prev.selectedTeams, teamName]
+      }));
+    }
+    setTeamSearchTerm('');
+    setShowTeamDropdown(false);
+  };
+
+  const handleRemoveSelectedTeam = (teamName) => {
+    setCustomMessageForm(prev => ({
+      ...prev,
+      selectedTeams: prev.selectedTeams.filter(team => team !== teamName)
+    }));
+  };
+
+  const handleCustomMessageSubmit = async () => {
+    if (!customMessageForm.message.trim()) {
+      alert('Please enter a message');
+      return;
+    }
+    
+    if (customMessageForm.selectedTeams.length === 0) {
+      alert('Please select at least one team');
+      return;
+    }
+
+    setSendingCustomMessage(true);
+    try {
+      const notificationsToAdd = customMessageForm.selectedTeams.map(teamName => ({
+        teamName: teamName,
+        notification: customMessageForm.message.trim(),
+        customTimestamp: new Date()
+      }));
+
+      const result = await addNotifications(notificationsToAdd);
+      if (result.success) {
+        alert(`✅ Custom message sent successfully to ${customMessageForm.selectedTeams.length} team(s)!`);
+        setShowCustomMessagePopup(false);
+        setCustomMessageForm({ selectedTeams: [], message: '' });
+        await fetchNotifications(); // Refresh the list
+      } else {
+        alert('Error sending custom message: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error sending custom message:', error);
+      alert('Error sending custom message');
+    } finally {
+      setSendingCustomMessage(false);
+    }
+  };
+
+  const handleCancelCustomMessage = () => {
+    setShowCustomMessagePopup(false);
+    setCustomMessageForm({ selectedTeams: [], message: '' });
+    setTeamSearchTerm('');
+    setShowTeamDropdown(false);
+  };
+
+  // ========== EDIT NOTIFICATION FUNCTIONS ==========
+  
+  const handleEditNotification = (notification) => {
+    setEditingNotification(notification);
+    setEditNotificationForm({
+      message: notification.notification
+    });
+    setShowEditNotificationPopup(true);
+  };
+
+  const handleEditNotificationSubmit = async () => {
+    if (!editNotificationForm.message.trim()) {
+      alert('Please enter a message');
+      return;
+    }
+
+    setUpdatingNotification(true);
+    try {
+      const notificationUpdate = [{
+        teamName: editingNotification.teamName,
+        notificationId: editingNotification.id,
+        newNotification: editNotificationForm.message.trim(),
+        originalTimestamp: editingNotification.createdAt
+      }];
+
+      const result = await updateNotifications(notificationUpdate);
+      if (result.success) {
+        alert('✅ Notification updated successfully!');
+        setShowEditNotificationPopup(false);
+        setEditingNotification(null);
+        setEditNotificationForm({ message: '' });
+        await fetchNotifications(); // Refresh the list
+      } else {
+        alert('Error updating notification: ' + (result.errors?.[0] || result.message));
+      }
+    } catch (error) {
+      console.error('Error updating notification:', error);
+      alert('Error updating notification');
+    } finally {
+      setUpdatingNotification(false);
+    }
+  };
+
+  const handleCancelEditNotification = () => {
+    setShowEditNotificationPopup(false);
+    setEditingNotification(null);
+    setEditNotificationForm({ message: '' });
   };
 
   const updateNotificationDownloadHistory = async (downloadTimestamp) => {
@@ -1825,248 +2389,119 @@ function Management() {
       case 'notifiers':
         return (
           <div className="tab-content">
-            <h3>Team Notifications Management</h3>
             <div className="notifiers-section">
-              <div className="notifiers-controls">
-                <div className="upload-section">
-                  <h4>Upload Notifications from Excel</h4>
-                  <p className="section-description">
-                    Upload an Excel file with columns: "Team Name" and "Notification". 
-                    Only registered team names will be accepted. Invalid teams will be skipped.
-                  </p>
-                  <div className="file-upload-container">
-                    <input
-                      type="file"
-                      id="notification-file-upload"
-                      accept=".xlsx,.xls"
-                      onChange={handleNotificationFileUpload}
-                      style={{ display: 'none' }}
-                    />
-                    <button
-                      className="upload-btn"
-                      onClick={() => document.getElementById('notification-file-upload').click()}
-                      disabled={uploadingNotifications}
-                    >
-                      {uploadingNotifications ? (
-                        <>
-                          <span className="spinner"></span>
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="7,10 12,15 17,10"/>
-                            <line x1="12" y1="15" x2="12" y2="3"/>
-                          </svg>
-                          Upload Excel File
-                        </>
-                      )}
-                    </button>
-                  </div>
+              <div className="notifiers-header">
+                <h3>Team Notifications</h3>
+                <p>Upload Excel files to send notifications to teams</p>
+              </div>
+
+              <div className="notifiers-actions">
+                <div className="upload-area">
+                  <input
+                    type="file"
+                    id="notification-file-upload"
+                    accept=".xlsx,.xls"
+                    onChange={handleNotificationFileUpload}
+                    style={{ display: 'none' }}
+                  />
+                  <button
+                    className="upload-button"
+                    onClick={() => document.getElementById('notification-file-upload').click()}
+                    disabled={uploadingNotifications}
+                  >
+                    {uploadingNotifications ? 'Uploading...' : 'Upload Excel File'}
+                  </button>
+                  <span className="file-hint">Excel files only (.xlsx, .xls)</span>
                 </div>
 
-                <div className="download-section">
-                  <h4>Download Template & History</h4>
-                  <p className="section-description">
-                    Download Excel template with all registered team names pre-filled. 
-                    Includes team info, notification history, and download tracking.
-                  </p>
+                <div className="download-area">
                   <button
-                    className="download-btn"
+                    className="download-button"
                     onClick={downloadNotificationTemplate}
                     disabled={downloadingTemplate}
                   >
-                    {downloadingTemplate ? (
-                      <>
-                        <span className="spinner"></span>
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                          <polyline points="17,8 12,13 7,8"/>
-                          <line x1="12" y1="13" x2="12" y2="1"/>
-                        </svg>
-                        Download Template
-                      </>
-                    )}
+                    {downloadingTemplate ? 'Generating...' : 'Download Template'}
                   </button>
+                  <span className="file-hint">Get Excel template with current data</span>
                 </div>
-              </div>
 
-              {/* Notification Statistics */}
-              <div className="notification-stats">
-                <div className="stat-item">
-                  <h5>Total Teams</h5>
-                  <p className="stat-number">{teams.length}</p>
-                  <small className="stat-label">Registered teams</small>
-                </div>
-                <div className="stat-item">
-                  <h5>Total Notifications</h5>
-                  <p className="stat-number">{notifications.length}</p>
-                  <small className="stat-label">All notifications</small>
-                </div>
-                <div className="stat-item">
-                  <h5>Unread Notifications</h5>
-                  <p className="stat-number">{notifications.filter(n => !n.read).length}</p>
-                  <small className="stat-label">Pending read</small>
-                </div>
-                <div className="stat-item">
-                  <h5>Teams with Notifications</h5>
-                  <p className="stat-number">
-                    {new Set(notifications.map(n => n.teamName)).size}
-                  </p>
-                  <small className="stat-label">Unique teams</small>
-                </div>
-              </div>
-
-              <div className="notifications-list-section">
-                <div className="section-header">
-                  <h4>Current Notifications ({notifications.length})</h4>
-                  <button 
-                    className="refresh-btn"
-                    onClick={fetchNotifications}
-                    title="Refresh notifications"
+                <div className="custom-message-area">
+                  <button
+                    className="custom-message-button"
+                    onClick={handleSendCustomMessage}
+                    disabled={sendingCustomMessage}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="23,4 23,10 17,10"/>
-                      <polyline points="1,20 1,14 7,14"/>
-                      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
-                    </svg>
+                    📝 Send Custom Message
+                  </button>
+                  <span className="file-hint">Send message directly to selected teams</span>
+                </div>
+              </div>
+
+              <div className="notifiers-stats">
+                <div className="stat-card">
+                  <span className="stat-number">{teams.length}</span>
+                  <span className="stat-label">Teams</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-number">{notifications.length}</span>
+                  <span className="stat-label">Notifications</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-number">{notifications.filter(n => !n.read).length}</span>
+                  <span className="stat-label">Unread</span>
+                </div>
+              </div>
+
+              <div className="notifiers-list">
+                <div className="list-header">
+                  <h4>Notifications</h4>
+                  <button className="refresh-button" onClick={fetchNotifications}>
+                    ↻ Refresh
                   </button>
                 </div>
                 
                 {notifications.length > 0 ? (
-                  <div className="notifications-table-container">
-                    <table className="notifications-table">
-                      <thead>
-                        <tr>
-                          <th>Team Name</th>
-                          <th>Notification</th>
-                          <th>Created Date</th>
-                          <th>Status</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {notifications.map((notification) => (
-                          <tr key={notification.id} className={notification.read ? 'read-notification' : 'unread-notification'}>
-                            <td className="team-name">
-                              {notification.teamName}
-                              <small className="team-info">
-                                {teams.find(team => team.teamName === notification.teamName)?.academicYear || 'N/A'}
-                              </small>
-                            </td>
-                            <td className="notification-text">
-                              {notification.notification}
-                              {notification.addedBy && (
-                                <small className="added-by">Added by: {notification.addedBy}</small>
-                              )}
-                            </td>
-                            <td className="created-date">
-                              {notification.createdAt ? 
-                                (notification.createdAt.toDate ? 
-                                  notification.createdAt.toDate().toLocaleString() : 
-                                  new Date(notification.createdAt).toLocaleString()
-                                ) : 'N/A'
-                              }
-                            </td>
-                            <td className="notification-status">
-                              <span className={`status-badge ${notification.read ? 'read' : 'unread'}`}>
-                                {notification.read ? 'Read' : 'Unread'}
-                              </span>
-                              {notification.readAt && (
-                                <small className="read-date">
-                                  Read: {notification.readAt.toDate ? 
-                                    notification.readAt.toDate().toLocaleDateString() : 
-                                    new Date(notification.readAt).toLocaleDateString()
-                                  }
-                                </small>
-                              )}
-                            </td>
-                            <td>
-                              <div className="action-buttons">
-                                <button 
-                                  className="delete-notification-btn"
-                                  onClick={() => handleDeleteNotification(notification.id)}
-                                  title="Delete notification"
-                                >
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="3,6 5,6 21,6"/>
-                                    <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"/>
-                                    <line x1="10" y1="11" x2="10" y2="17"/>
-                                    <line x1="14" y1="11" x2="14" y2="17"/>
-                                  </svg>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="notifications-table">
+                    {notifications.map((notification) => (
+                      <div key={notification.id} className={`notification-row ${notification.read ? 'read' : 'unread'}`}>
+                        <div className="notification-info">
+                          <div className="team-name">{notification.teamName}</div>
+                          <div className="notification-text">{notification.notification}</div>
+                          <div className="notification-meta">
+                            {notification.createdAt ? 
+                              (notification.createdAt.toDate ? 
+                                notification.createdAt.toDate().toLocaleDateString() : 
+                                new Date(notification.createdAt).toLocaleDateString()
+                              ) : 'N/A'
+                            }
+                            <span className={`status ${notification.read ? 'read' : 'unread'}`}>
+                              {notification.read ? 'Read' : 'Unread'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="notification-actions">
+                          <button 
+                            className="edit-button"
+                            onClick={() => handleEditNotification(notification)}
+                            title="Edit"
+                          >
+                            ✏️
+                          </button>
+                          <button 
+                            className="delete-button"
+                            onClick={() => handleDeleteNotification(notification.id)}
+                            title="Delete"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : (
-                  <div className="no-notifications">
-                    <p>No notifications found.</p>
-                    <small>Upload an Excel file to add team notifications.</small>
-                  </div>
-                )}
-              </div>
-
-              <div className="download-history-section">
-                <div className="section-header">
-                  <h4>Download History ({downloadHistory.length})</h4>
-                  <button 
-                    className="refresh-btn"
-                    onClick={fetchDownloadHistory}
-                    title="Refresh download history"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="23,4 23,10 17,10"/>
-                      <polyline points="1,20 1,14 7,14"/>
-                      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
-                    </svg>
-                  </button>
-                </div>
-                
-                {downloadHistory.length > 0 ? (
-                  <div className="download-history-table-container">
-                    <table className="download-history-table">
-                      <thead>
-                        <tr>
-                          <th>Download Date</th>
-                          <th>Downloaded By</th>
-                          <th>Team Count</th>
-                          <th>Notification Count</th>
-                          <th>Filename</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {downloadHistory.map((download) => (
-                          <tr key={download.id}>
-                            <td className="download-date">
-                              {download.downloadedAt ? 
-                                (download.downloadedAt.toDate ? 
-                                  download.downloadedAt.toDate().toLocaleString() : 
-                                  new Date(download.downloadedAt).toLocaleString()
-                                ) : 'N/A'
-                              }
-                            </td>
-                            <td className="downloaded-by">{download.downloadedBy || 'Admin'}</td>
-                            <td className="team-count">{download.teamCount || 0}</td>
-                            <td className="notification-count">{download.notificationCount || 0}</td>
-                            <td className="filename">{download.filename || 'N/A'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="no-download-history">
-                    <p>No download history found.</p>
-                    <small>Download history will appear here after you download templates.</small>
+                  <div className="empty-state">
+                    <p>No notifications yet</p>
+                    <span>Upload an Excel file to add notifications</span>
                   </div>
                 )}
               </div>
@@ -2915,6 +3350,224 @@ function Management() {
                   <p className="no-members">No members found for this team.</p>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Message Popup */}
+      {showCustomMessagePopup && (
+        <div className="popup-overlay">
+          <div className="popup-content custom-message-popup">
+            <div className="popup-header">
+              <h3>Send Custom Message</h3>
+              <button className="close-btn" onClick={handleCancelCustomMessage}>×</button>
+            </div>
+            
+            <div className="popup-body">
+              <div className="form-group">
+                <label>Select Teams:</label>
+                <div className="team-selection">
+                  <div className="search-wrapper">
+                    <div className="search-input-container">
+                      <input
+                        type="text"
+                        className="team-search-input"
+                        placeholder="Search teams by name or leader..."
+                        value={teamSearchTerm}
+                        onChange={handleTeamSearchChange}
+                        onFocus={handleTeamSearchFocus}
+                        onBlur={handleTeamSearchBlur}
+                      />
+                      <button 
+                        type="button" 
+                        className="dropdown-toggle-btn"
+                        onClick={() => setShowTeamDropdown(!showTeamDropdown)}
+                      >
+                        {showTeamDropdown ? '▲' : '▼'}
+                      </button>
+                    </div>
+                    
+                    {showTeamDropdown && (
+                      <div className="teams-dropdown">
+                        <div className="dropdown-header">
+                          <button 
+                            type="button" 
+                            className="select-all-btn"
+                            onClick={handleSelectAllTeams}
+                          >
+                            {customMessageForm.selectedTeams.length === getFilteredTeams().length ? 'Deselect All' : 'Select All'}
+                          </button>
+                          <span className="results-count">
+                            {getFilteredTeams().length} team(s) found
+                          </span>
+                        </div>
+                        
+                        <div className="teams-dropdown-list">
+                          {getFilteredTeams().length > 0 ? (
+                            getFilteredTeams().map((team) => (
+                              <div 
+                                key={team.teamName} 
+                                className={`team-dropdown-item ${customMessageForm.selectedTeams.includes(team.teamName) ? 'selected' : ''}`}
+                                onClick={() => handleCustomMessageTeamToggle(team.teamName)}
+                              >
+                                <div className="team-info">
+                                  <span className="team-name">{team.teamName}</span>
+                                  <span className="team-leader">Leader: {team.leaderName}</span>
+                                </div>
+                                <div className="selection-indicator">
+                                  {customMessageForm.selectedTeams.includes(team.teamName) ? '✓' : '+'}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="no-results">
+                              No teams found matching "{teamSearchTerm}"
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Selected Teams Display */}
+                  {customMessageForm.selectedTeams.length > 0 && (
+                    <div className="selected-teams">
+                      <div className="selected-teams-header">
+                        <span>Selected Teams ({customMessageForm.selectedTeams.length}):</span>
+                        <button 
+                          type="button" 
+                          className="clear-all-btn"
+                          onClick={() => setCustomMessageForm(prev => ({...prev, selectedTeams: []}))}
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                      <div className="selected-teams-list">
+                        {customMessageForm.selectedTeams.map((teamName) => {
+                          const team = teams.find(t => t.teamName === teamName);
+                          return (
+                            <div key={teamName} className="selected-team-tag">
+                              <div className="selected-team-info">
+                                <span className="selected-team-name">{teamName}</span>
+                                {team && <span className="selected-team-leader">{team.leaderName}</span>}
+                              </div>
+                              <button 
+                                type="button"
+                                className="remove-team-btn"
+                                onClick={() => handleRemoveSelectedTeam(teamName)}
+                                title="Remove team"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="custom-message">Message:</label>
+                <textarea
+                  id="custom-message"
+                  value={customMessageForm.message}
+                  onChange={(e) => setCustomMessageForm(prev => ({...prev, message: e.target.value}))}
+                  placeholder="Enter your message here..."
+                  rows="4"
+                  maxLength="500"
+                />
+                <small className="char-count">
+                  {customMessageForm.message.length}/500 characters
+                </small>
+              </div>
+            </div>
+            
+            <div className="popup-footer">
+              <button 
+                type="button" 
+                className="cancel-btn" 
+                onClick={handleCancelCustomMessage}
+                disabled={sendingCustomMessage}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="send-btn" 
+                onClick={handleCustomMessageSubmit}
+                disabled={sendingCustomMessage || !customMessageForm.message.trim() || customMessageForm.selectedTeams.length === 0}
+              >
+                {sendingCustomMessage ? 'Sending...' : `Send to ${customMessageForm.selectedTeams.length} team(s)`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Notification Popup */}
+      {showEditNotificationPopup && editingNotification && (
+        <div className="popup-overlay">
+          <div className="popup-content edit-notification-popup">
+            <div className="popup-header">
+              <h3>Edit Notification</h3>
+              <button className="close-btn" onClick={handleCancelEditNotification}>×</button>
+            </div>
+            
+            <div className="popup-body">
+              <div className="notification-details">
+                <div className="detail-row">
+                  <span className="label">Team:</span>
+                  <span className="value">{editingNotification.teamName}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="label">Created:</span>
+                  <span className="value">
+                    {editingNotification.createdAt ? 
+                      (editingNotification.createdAt.toDate ? 
+                        editingNotification.createdAt.toDate().toLocaleString() : 
+                        new Date(editingNotification.createdAt).toLocaleString()
+                      ) : 'N/A'
+                    }
+                  </span>
+                </div>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="edit-message">Message:</label>
+                <textarea
+                  id="edit-message"
+                  value={editNotificationForm.message}
+                  onChange={(e) => setEditNotificationForm({message: e.target.value})}
+                  placeholder="Enter updated message..."
+                  rows="4"
+                  maxLength="500"
+                />
+                <small className="char-count">
+                  {editNotificationForm.message.length}/500 characters
+                </small>
+              </div>
+            </div>
+            
+            <div className="popup-footer">
+              <button 
+                type="button" 
+                className="cancel-btn" 
+                onClick={handleCancelEditNotification}
+                disabled={updatingNotification}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="save-btn" 
+                onClick={handleEditNotificationSubmit}
+                disabled={updatingNotification || !editNotificationForm.message.trim()}
+              >
+                {updatingNotification ? 'Updating...' : 'Update Notification'}
+              </button>
             </div>
           </div>
         </div>

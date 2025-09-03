@@ -1494,7 +1494,7 @@ export const addNotifications = async (notificationsData) => {
         const newNotification = {
           id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           notification: notification.notification,
-          createdAt: currentTime,
+          createdAt: notification.customTimestamp || currentTime,
           read: false,
           addedBy: 'admin'
         };
@@ -1536,15 +1536,115 @@ export const addNotifications = async (notificationsData) => {
   }
 };
 
+export const updateNotifications = async (notificationUpdates) => {
+  try {
+    const teamsRef = collection(db, 'teams');
+    const querySnapshot = await getDocs(teamsRef);
+    
+    // Create a map of team names to team documents
+    const teamMap = new Map();
+    querySnapshot.forEach((doc) => {
+      const teamData = doc.data();
+      teamMap.set(teamData.teamName, {
+        id: doc.id,
+        data: teamData
+      });
+    });
+    
+    const updatePromises = [];
+    let updatedCount = 0;
+    let notFoundTeams = [];
+    let notFoundNotifications = [];
+    
+    for (const update of notificationUpdates) {
+      const team = teamMap.get(update.teamName);
+      if (team) {
+        const teamRef = doc(db, 'teams', team.id);
+        const existingNotifications = team.data.notifications || [];
+        
+        // Find the notification to update by ID
+        const notificationIndex = existingNotifications.findIndex(notif => notif.id === update.notificationId);
+        
+        if (notificationIndex !== -1) {
+          // Update the notification
+          const updatedNotifications = [...existingNotifications];
+          updatedNotifications[notificationIndex] = {
+            ...updatedNotifications[notificationIndex],
+            notification: update.newNotification,
+            updatedAt: new Date(),
+            updatedBy: 'admin'
+          };
+          
+          updatePromises.push(
+            updateDoc(teamRef, {
+              notifications: updatedNotifications,
+              lastNotificationUpdate: serverTimestamp()
+            })
+          );
+          updatedCount++;
+        } else {
+          notFoundNotifications.push(`${update.teamName}:${update.notificationId}`);
+        }
+      } else {
+        notFoundTeams.push(update.teamName);
+      }
+    }
+    
+    await Promise.all(updatePromises);
+    
+    let message = `${updatedCount} notifications updated successfully`;
+    const errors = [];
+    
+    if (notFoundTeams.length > 0) {
+      errors.push(`Teams not found: ${notFoundTeams.join(', ')}`);
+    }
+    if (notFoundNotifications.length > 0) {
+      errors.push(`Notifications not found: ${notFoundNotifications.join(', ')}`);
+    }
+    
+    return {
+      success: true,
+      message: message,
+      updatedCount: updatedCount,
+      errors: errors
+    };
+  } catch (error) {
+    console.error('Error updating notifications:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error updating notifications',
+      errors: [error.message]
+    };
+  }
+};
+
 export const deleteNotification = async (notificationId) => {
   try {
+    console.log('deleteNotification called with ID:', notificationId);
+    
     // Parse the notification ID to get team ID and notification index
-    const [teamId, notificationIndex] = notificationId.split('_');
+    // Handle case where teamId might contain underscores
+    const parts = notificationId.split('_');
+    if (parts.length < 2) {
+      console.error('Invalid notification ID format:', notificationId);
+      return {
+        success: false,
+        message: 'Invalid notification ID format'
+      };
+    }
+    
+    // The last part is the index, everything before that is the teamId
+    const notificationIndex = parseInt(parts[parts.length - 1]);
+    const teamId = parts.slice(0, -1).join('_');
+    
+    console.log('Parsed teamId:', teamId, 'notificationIndex:', notificationIndex);
     
     const teamRef = doc(db, 'teams', teamId);
     const teamDoc = await getDoc(teamRef);
     
     if (!teamDoc.exists()) {
+      console.error('Team not found:', teamId);
       return {
         success: false,
         message: 'Team not found'
@@ -1554,20 +1654,27 @@ export const deleteNotification = async (notificationId) => {
     const teamData = teamDoc.data();
     const notifications = teamData.notifications || [];
     
-    if (notificationIndex >= notifications.length || notificationIndex < 0) {
+    console.log('Team notifications:', notifications.length, 'notifications found');
+    
+    if (isNaN(notificationIndex) || notificationIndex >= notifications.length || notificationIndex < 0) {
+      console.error('Invalid notification index:', notificationIndex, 'max index:', notifications.length - 1);
       return {
         success: false,
         message: 'Notification not found'
       };
     }
     
+    console.log('Deleting notification at index:', notificationIndex);
+    
     // Remove the notification at the specified index
-    const updatedNotifications = notifications.filter((_, index) => index !== parseInt(notificationIndex));
+    const updatedNotifications = notifications.filter((_, index) => index !== notificationIndex);
     
     await updateDoc(teamRef, {
       notifications: updatedNotifications,
       lastNotificationUpdate: serverTimestamp()
     });
+    
+    console.log('Notification deleted successfully');
     
     return {
       success: true,
