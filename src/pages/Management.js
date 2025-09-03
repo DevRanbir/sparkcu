@@ -28,6 +28,7 @@ import {
   addNotifications,
   updateNotifications,
   deleteNotification,
+  deleteAllNotifications,
   addDownloadHistory,
   getDownloadHistory,
   getResults,
@@ -124,6 +125,7 @@ function Management() {
   const [notifications, setNotifications] = useState([]);
   const [uploadingNotifications, setUploadingNotifications] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const [deletingAllNotifications, setDeletingAllNotifications] = useState(false);
   // eslint-disable-next-line no-unused-vars
   const [downloadHistory, setDownloadHistory] = useState([]);
   
@@ -150,6 +152,7 @@ function Management() {
   const [uploadingResults, setUploadingResults] = useState(false);
   const [downloadingResultsTemplate, setDownloadingResultsTemplate] = useState(false);
   const [deletingAllResults, setDeletingAllResults] = useState(false);
+  const [sendingResultsNotifications, setSendingResultsNotifications] = useState(false);
   const [resultsPreview, setResultsPreview] = useState([]);
   const [showResultsPreview, setShowResultsPreview] = useState(false);
   
@@ -1637,6 +1640,34 @@ function Management() {
     }
   };
 
+  const handleDeleteAllNotifications = async () => {
+    if (notifications.length === 0) {
+      alert('No notifications to delete');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ALL ${notifications.length} notifications? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingAllNotifications(true);
+    try {
+      const result = await deleteAllNotifications();
+      if (result.success) {
+        alert(result.message);
+        setNotifications([]);
+        fetchNotifications(); // Refresh the list
+      } else {
+        alert('Error deleting notifications: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error deleting all notifications:', error);
+      alert('Error deleting notifications: ' + error.message);
+    } finally {
+      setDeletingAllNotifications(false);
+    }
+  };
+
   // ========== RESULTS FUNCTIONS ==========
   
   const downloadResultsTemplate = async () => {
@@ -1943,6 +1974,55 @@ function Management() {
       alert('Error deleting results: ' + error.message);
     } finally {
       setDeletingAllResults(false);
+    }
+  };
+
+  const handleSendResultsToAllTeams = async () => {
+    if (resultsData.length === 0) {
+      alert('No results to send. Please upload and save results first.');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to send results notifications to all ${resultsData.length} teams?`)) {
+      return;
+    }
+
+    setSendingResultsNotifications(true);
+    try {
+      // Create personalized notifications for each team
+      const notificationsToAdd = resultsData.map(result => {
+        const rankSuffix = (rank) => {
+          if (rank === 1) return '1st';
+          if (rank === 2) return '2nd';
+          if (rank === 3) return '3rd';
+          return `${rank}th`;
+        };
+
+        const getPositionRange = (rank) => {
+          if (rank <= 3) return '3';
+          if (rank <= 10) return '10';
+          return 'overall';
+        };
+
+        const message = `🎉 SparkCU Ideathon Results – Dear ${result.teamName}, you have secured Rank ${rankSuffix(result.rank)} with a Grand Total Score of ${result.grandTotal}/12. Your performance breakdown is as follows: Problem Understanding: ${result.problemUnderstanding}/2, Innovation & Creativity: ${result.innovation}/3, Technical Feasibility: ${result.feasibility}/2, Presentation Skills: ${result.presentation}/3, Main Competition Total: ${result.total}/10, Contest/Coding Score: ${result.contestScore}/2. Judge's Feedback: "${result.judgeReview || 'No feedback provided'}". Congratulations on achieving a Top ${getPositionRange(result.rank)} position—your hard work, creativity, and dedication made SparkCU Ideathon a true success.`;
+
+        return {
+          teamName: result.teamName,
+          notification: message
+        };
+      });
+
+      const result = await addNotifications(notificationsToAdd);
+      if (result.success) {
+        alert(`Results notifications sent successfully to ${resultsData.length} teams!`);
+      } else {
+        alert('Error sending notifications: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error sending results notifications:', error);
+      alert('Error sending notifications: ' + error.message);
+    } finally {
+      setSendingResultsNotifications(false);
     }
   };
 
@@ -2874,9 +2954,20 @@ function Management() {
                     onClick={handleSendCustomMessage}
                     disabled={sendingCustomMessage}
                   >
-                    📝 Send Custom Message
+                    📝 Send Custom
                   </button>
                   <span className="file-hint">Send message directly to selected teams</span>
+                </div>
+
+                <div className="delete-all-area">
+                  <button
+                    className="delete-all-notifications-button"
+                    onClick={handleDeleteAllNotifications}
+                    disabled={deletingAllNotifications || notifications.length === 0}
+                  >
+                    🗑️ {deletingAllNotifications ? 'Deleting...' : 'Delete All...'}
+                  </button>
+                  <span className="file-hint">Remove all notifications from database</span>
                 </div>
               </div>
 
@@ -2988,6 +3079,17 @@ function Management() {
                     {downloadingResultsTemplate ? 'Generating...' : 'Download Template'}
                   </button>
                   <span className="file-hint">Get Excel template with scoring structure</span>
+                </div>
+
+                <div className="notify-area">
+                  <button
+                    className="notify-results-button"
+                    onClick={handleSendResultsToAllTeams}
+                    disabled={sendingResultsNotifications || resultsData.length === 0}
+                  >
+                    {sendingResultsNotifications ? 'Sending...' : 'Send Results'}
+                  </button>
+                  <span className="file-hint">Send personalized results to each team</span>
                 </div>
 
                 <div className="delete-area">

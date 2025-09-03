@@ -1975,6 +1975,43 @@ export const deleteNotification = async (notificationId) => {
   }
 };
 
+export const deleteAllNotifications = async () => {
+  try {
+    const teamsRef = collection(db, 'teams');
+    const querySnapshot = await getDocs(teamsRef);
+    
+    const batch = writeBatch(db);
+    let teamsUpdated = 0;
+    
+    querySnapshot.forEach((doc) => {
+      const teamData = doc.data();
+      if (teamData.notifications && teamData.notifications.length > 0) {
+        batch.update(doc.ref, {
+          notifications: [],
+          lastNotificationUpdate: serverTimestamp()
+        });
+        teamsUpdated++;
+      }
+    });
+    
+    if (teamsUpdated > 0) {
+      await batch.commit();
+    }
+    
+    return {
+      success: true,
+      message: `All notifications deleted successfully from ${teamsUpdated} teams`
+    };
+  } catch (error) {
+    console.error('Error deleting all notifications:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error deleting all notifications'
+    };
+  }
+};
+
 export const getUserNotifications = async (teamName) => {
   try {
     const teamsRef = collection(db, 'teams');

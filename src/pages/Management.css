@@ -4061,13 +4061,17 @@ input:disabled + .toggle-slider:before {
 }
 
 .notifiers-section .upload-area,
-.notifiers-section .download-area {
+.notifiers-section .download-area,
+.notifiers-section .custom-message-area,
+.notifiers-section .delete-all-area {
   flex: 1;
   text-align: center;
 }
 
 .notifiers-section .upload-button,
-.notifiers-section .download-button {
+.notifiers-section .download-button,
+.notifiers-section .custom-message-button,
+.notifiers-section .delete-all-notifications-button {
   background: white;
   color: black;
   border: 2px solid black;
@@ -4083,14 +4087,26 @@ input:disabled + .toggle-slider:before {
 }
 
 .notifiers-section .upload-button:hover,
-.notifiers-section .download-button:hover {
+.notifiers-section .download-button:hover,
+.notifiers-section .custom-message-button:hover {
+  transform: translateX(2px);
+}
+
+.notifiers-section .delete-all-notifications-button:hover {
+  background: #e74c3c;
+  color: white;
   transform: translateX(2px);
 }
 
 .notifiers-section .upload-button:disabled,
-.notifiers-section .download-button:disabled {
+.notifiers-section .download-button:disabled,
+.notifiers-section .custom-message-button:disabled,
+.notifiers-section .delete-all-notifications-button:disabled {
   background: #6c757d;
+  color: white;
+  border-color: #6c757d;
   cursor: not-allowed;
+  transform: none;
 }
 
 .notifiers-section .file-hint {
@@ -4290,13 +4306,15 @@ input:disabled + .toggle-slider:before {
 /* Custom Message Button Styles */
 .notifiers-section .upload-area,
 .notifiers-section .download-area,
-.notifiers-section .custom-message-area {
+.notifiers-section .custom-message-area,
+.notifiers-section .delete-all-area {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.notifiers-section .custom-message-button {
+.notifiers-section .custom-message-button,
+.notifiers-section .delete-all-notifications-button {
   background: white;
   color: black;
   border: 2px solid black;
@@ -4312,12 +4330,26 @@ input:disabled + .toggle-slider:before {
   min-height: 48px;
 }
 
+.notifiers-section .delete-all-notifications-button {
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
 .notifiers-section .custom-message-button:hover {
   transform: translateX(2px);
 }
 
-.notifiers-section .custom-message-button:disabled {
-  background: #bdc3c7;
+.notifiers-section .delete-all-notifications-button:hover {
+  background: #e74c3c;
+  color: white;
+  transform: translateX(2px);
+}
+
+.notifiers-section .custom-message-button:disabled,
+.notifiers-section .delete-all-notifications-button:disabled {
+  background: #6c757d;
+  color: white;
+  border-color: #6c757d;
   cursor: not-allowed;
   transform: none;
 }
@@ -5293,6 +5325,7 @@ textarea:focus {
 
 .results-section .upload-area,
 .results-section .download-area,
+.results-section .notify-area,
 .results-section .delete-area {
   flex: 1;
   text-align: center;
@@ -5300,6 +5333,7 @@ textarea:focus {
 
 .results-section .upload-button,
 .results-section .download-button,
+.results-section .notify-results-button,
 .results-section .delete-all-button {
   background: white;
   color: black;
@@ -5315,6 +5349,11 @@ textarea:focus {
   margin-bottom: 8px;
 }
 
+.results-section .notify-results-button {
+  border-color: #3498db;
+  color: #3498db;
+}
+
 .results-section .delete-all-button {
   border-color: #e74c3c;
   color: #e74c3c;
@@ -5322,6 +5361,12 @@ textarea:focus {
 
 .results-section .upload-button:hover,
 .results-section .download-button:hover {
+  transform: translateX(2px);
+}
+
+.results-section .notify-results-button:hover {
+  background: #3498db;
+  color: white;
   transform: translateX(2px);
 }
 
@@ -5333,6 +5378,7 @@ textarea:focus {
 
 .results-section .upload-button:disabled,
 .results-section .download-button:disabled,
+.results-section .notify-results-button:disabled,
 .results-section .delete-all-button:disabled {
   background: #6c757d;
   color: white;
@@ -5563,6 +5609,7 @@ textarea:focus {
   
   .results-section .upload-area,
   .results-section .download-area,
+  .results-section .notify-area,
   .results-section .delete-area {
     text-align: left;
   }

@@ -4,7 +4,7 @@
   background-size: 30px 30px;
   padding: 1.2rem;
   padding-top: 3.5rem;
-  margin-left: 5rem ;
+  margin-left: 1rem ;
 }
 
 .result-content {
@@ -99,7 +99,7 @@
   min-height: 100vh;
   padding: 2rem;
   background-size: 30px 30px;
-  margin-top: -35rem;
+  margin-top: -39rem;
 }
 
 .winners-content {
@@ -108,7 +108,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 25rem;
+  gap: 5rem;
 }
 
 .winners-header {
@@ -133,6 +133,23 @@
   margin: 0;
   font-weight: 400;
   margin-left: 5px;
+}
+
+.results-description {
+    padding: 1rem;
+    border-radius: 15px;
+    max-width: 50%;
+}
+
+.results-description p {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #444;
+  margin: 0;
+  text-align: justify;
+  font-weight: 400;
+  text-indent: 2rem;
+  letter-spacing: 0.3px;
 }
 
 .winners-table-container {
@@ -379,4 +396,72 @@
   .medal {
     font-size: 1rem;
   }
+}
+
+/* Loading, Error, and No Results States */
+.loading-container {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #666;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-container {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #e74c3c;
+}
+
+.error-message {
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.retry-button,
+.refresh-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retry-button:hover,
+.refresh-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.no-results-container {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #666;
+}
+
+.no-results-container h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.no-results-container p {
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
 }

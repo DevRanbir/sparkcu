@@ -19,7 +19,7 @@ const placeNow = (el, slot, skew) =>
     y: slot.y,
     z: slot.z,
     xPercent: -40,
-    yPercent: -80,
+    yPercent: -85,
     skewY: skew,
     transformOrigin: 'center center',
     zIndex: slot.zIndex,
@@ -29,12 +29,12 @@ const placeNow = (el, slot, skew) =>
 const CardSwap = ({
   width = 600,
   height = 500,
-  cardDistance = 70,
+  cardDistance = 60,
   verticalDistance = 70,
   delay = 8000,
   pauseOnHover = true,
   onCardClick,
-  skewAmount = 2,
+  skewAmount = 8,
   easing = 'elastic',
   children
 }) => {
