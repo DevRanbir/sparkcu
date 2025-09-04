@@ -383,10 +383,13 @@
   
   .winners-title {
     font-size: 2rem;
+    text-align: center;
+    margin-left: 0;
   }
   
   .winners-subtitle {
     font-size: 0.9rem;
+    text-align: center;
   }
   
   .winners-table-container {

@@ -20,12 +20,22 @@ import {
   deleteStoredDomeGalleryImage,
   getPageVisibilitySettings,
   updatePageVisibilitySettings,
+  migrateFAQPageVisibility,
+  getPendingFAQs,
+  getRejectedFAQs,
+  approveFAQQuestion,
+  rejectFAQQuestion,
+  answerFAQQuestion,
+  deleteFAQQuestion,
+  getPublicFAQs,
+  migrateFAQsWithTeamNames,
   getSubmissionSettings,
   updateSubmissionSettings,
   getAutoAnnouncementSettings,
   checkAndCreateAutoAnnouncements,
   getNotifications,
   addNotifications,
+  addSingleNotification,
   updateNotifications,
   deleteNotification,
   deleteAllNotifications,
@@ -117,7 +127,8 @@ function Management() {
     result: true,
     dashboard: true,
     login: true,
-    register: true
+    register: true,
+    faq: true
   });
   const [updatingPageVisibility, setUpdatingPageVisibility] = useState(false);
   
@@ -131,6 +142,20 @@ function Management() {
   
   // Custom message popup state
   const [showCustomMessagePopup, setShowCustomMessagePopup] = useState(false);
+  
+  // FAQ Management state
+  const [pendingFAQs, setPendingFAQs] = useState([]);
+  const [publicFAQs, setPublicFAQs] = useState([]);
+  const [rejectedFAQs, setRejectedFAQs] = useState([]);
+  const [loadingFAQs, setLoadingFAQs] = useState(false);
+  // eslint-disable-next-line no-unused-vars
+  const [answeringFAQ, setAnsweringFAQ] = useState(null);
+  const [answerText, setAnswerText] = useState('');
+  const [showEditFAQPopup, setShowEditFAQPopup] = useState(false);
+  const [editingFAQ, setEditingFAQ] = useState(null);
+  const [showRejectFAQPopup, setShowRejectFAQPopup] = useState(false);
+  const [rejectingFAQ, setRejectingFAQ] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
   const [customMessageForm, setCustomMessageForm] = useState({
     selectedTeams: [],
     message: ''
@@ -181,6 +206,22 @@ function Management() {
     fetchNotifications();
     fetchDownloadHistory();
     fetchResultsData();
+    fetchPendingFAQs();
+    fetchPublicFAQs();
+    fetchRejectedFAQs();
+    
+    // Run FAQ migration to ensure all FAQs have team names
+    migrateFAQsWithTeamNames().then(result => {
+      if (result.success) {
+        console.log('FAQ migration completed:', result.message);
+        // Refetch FAQs after migration
+        fetchPendingFAQs();
+        fetchPublicFAQs();
+        fetchRejectedFAQs();
+      }
+    }).catch(error => {
+      console.error('FAQ migration failed:', error);
+    });
 
     // Handle window resize for responsive design
     const handleResize = () => {
@@ -339,6 +380,10 @@ function Management() {
 
   const fetchPageVisibilitySettings = async () => {
     try {
+      // First, run the migration to ensure FAQ is included
+      await migrateFAQPageVisibility();
+      
+      // Then fetch the page visibility settings
       const result = await getPageVisibilitySettings();
       if (result.success) {
         setPageVisibilitySettings(result.data);
@@ -1017,6 +1062,189 @@ function Management() {
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
+    }
+  };
+
+  // FAQ Management Functions
+  const fetchPendingFAQs = async () => {
+    try {
+      setLoadingFAQs(true);
+      const result = await getPendingFAQs();
+      if (result.success) {
+        setPendingFAQs(result.data || []);
+      } else {
+        console.error('Failed to fetch pending FAQs:', result.message);
+      }
+    } catch (error) {
+      console.error('Error fetching pending FAQs:', error);
+    } finally {
+      setLoadingFAQs(false);
+    }
+  };
+
+  const fetchPublicFAQs = async () => {
+    try {
+      const result = await getPublicFAQs();
+      if (result.success) {
+        setPublicFAQs(result.data || []);
+      } else {
+        console.error('Failed to fetch public FAQs:', result.message);
+      }
+    } catch (error) {
+      console.error('Error fetching public FAQs:', error);
+    }
+  };
+
+  const fetchRejectedFAQs = async () => {
+    try {
+      const result = await getRejectedFAQs();
+      if (result.success) {
+        setRejectedFAQs(result.data || []);
+      } else {
+        console.error('Failed to fetch rejected FAQs:', result.message);
+      }
+    } catch (error) {
+      console.error('Error fetching rejected FAQs:', error);
+    }
+  };
+
+  const handleApproveFAQ = async (faqId) => {
+    try {
+      // Find the FAQ data to get team name
+      const faq = pendingFAQs.find(f => f.id === faqId);
+      if (!faq) {
+        alert('FAQ not found');
+        return;
+      }
+
+      const result = await approveFAQQuestion(faqId);
+      if (result.success) {
+        // Send notification to the team (skip for anonymous users)
+        if (faq.teamName && faq.teamName !== 'Individual' && faq.teamName !== 'Anonymous User' && !faq.isAnonymous) {
+          const notificationText = `Good news! Your FAQ question "${faq.question.substring(0, 50)}${faq.question.length > 50 ? '...' : ''}" has been approved and is now published on the FAQ page and will be answered in due time.`;
+          const notificationResult = await addSingleNotification(faq.teamName, notificationText);
+          if (!notificationResult.success) {
+            console.error('Failed to send notification:', notificationResult.message);
+          }
+        }
+        
+        fetchPendingFAQs();
+        fetchPublicFAQs();
+        alert('FAQ approved successfully!');
+      } else {
+        alert('Error approving FAQ: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error approving FAQ:', error);
+      alert('Error approving FAQ.');
+    }
+  };
+
+  const handleRejectFAQ = (faqId) => {
+    const faq = pendingFAQs.find(f => f.id === faqId);
+    if (faq) {
+      setRejectingFAQ(faq);
+      setRejectionReason('');
+      setShowRejectFAQPopup(true);
+    }
+  };
+
+  const confirmRejectFAQ = async () => {
+    if (!rejectingFAQ) return;
+    
+    try {
+      const result = await rejectFAQQuestion(rejectingFAQ.id, rejectionReason);
+      if (result.success) {
+        // Send notification to the team (skip for anonymous users)
+        if (rejectingFAQ.teamName && rejectingFAQ.teamName !== 'Individual' && rejectingFAQ.teamName !== 'Anonymous User' && !rejectingFAQ.isAnonymous) {
+          const notificationText = `Your FAQ question "${rejectingFAQ.question.substring(0, 50)}${rejectingFAQ.question.length > 50 ? '...' : ''}" has been rejected. ${rejectionReason ? `Reason: ${rejectionReason}` : 'Please check the FAQ page for more details.'}`;
+          const notificationResult = await addSingleNotification(rejectingFAQ.teamName, notificationText);
+          if (!notificationResult.success) {
+            console.error('Failed to send rejection notification:', notificationResult.message);
+          }
+        }
+
+        fetchPendingFAQs();
+        fetchRejectedFAQs();
+        setShowRejectFAQPopup(false);
+        setRejectingFAQ(null);
+        setRejectionReason('');
+        alert('FAQ rejected successfully!');
+      } else {
+        alert('Error rejecting FAQ: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error rejecting FAQ:', error);
+      alert('Error rejecting FAQ.');
+    }
+  };
+
+  const handleAnswerFAQ = async (faqId) => {
+    if (!answerText.trim()) {
+      alert('Please enter an answer.');
+      return;
+    }
+
+    try {
+      // Get the FAQ data (either from editing FAQ or find it in public FAQs)
+      const faq = editingFAQ || publicFAQs.find(f => f.id === faqId);
+      if (!faq) {
+        alert('FAQ not found');
+        return;
+      }
+
+      const result = await answerFAQQuestion(faqId, answerText.trim());
+      if (result.success) {
+        // Send notification to the team (skip for anonymous users)
+        if (faq.teamName && faq.teamName !== 'Individual' && faq.teamName !== 'Anonymous User' && !faq.isAnonymous) {
+          const notificationText = `Your FAQ question "${faq.question.substring(0, 50)}${faq.question.length > 50 ? '...' : ''}" has been answered! Check the FAQ page to see the response.`;
+          const notificationResult = await addSingleNotification(faq.teamName, notificationText);
+          if (!notificationResult.success) {
+            console.error('Failed to send notification:', notificationResult.message);
+          }
+        }
+
+        setAnswerText('');
+        setAnsweringFAQ(null);
+        setShowEditFAQPopup(false);
+        setEditingFAQ(null);
+        fetchPublicFAQs();
+        fetchPendingFAQs();
+        alert('Answer updated successfully!');
+      } else {
+        alert('Error updating answer: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error updating answer:', error);
+      alert('Error updating answer.');
+    }
+  };
+
+  const handleDeleteFAQ = async (faqId) => {
+    if (!window.confirm('Are you sure you want to delete this FAQ? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const result = await deleteFAQQuestion(faqId, 'admin'); // Use 'admin' as special identifier
+      if (result.success) {
+        // Close the popup
+        setShowEditFAQPopup(false);
+        setEditingFAQ(null);
+        setAnswerText('');
+        
+        // Refresh all FAQ lists
+        fetchPublicFAQs();
+        fetchPendingFAQs();
+        fetchRejectedFAQs();
+        
+        alert('FAQ deleted successfully!');
+      } else {
+        alert('Error deleting FAQ: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error deleting FAQ:', error);
+      alert('Error deleting FAQ. Please try again.');
     }
   };
 
@@ -2230,6 +2458,11 @@ function Management() {
                 <p className="stat-number">{submissionsData.length}</p>
                 <small className="stat-subtitle">Projects submitted</small>
               </div>
+              <div className="stat-card" onClick={() => setActiveTab('faqs')} style={{ cursor: 'pointer' }}>
+                <h4>Pending FAQs</h4>
+                <p className="stat-number">{pendingFAQs.length}</p>
+                <small className="stat-subtitle">Awaiting approval</small>
+              </div>
               <div className="stat-card" onClick={() => setActiveTab('notifiers')} style={{ cursor: 'pointer' }}>
                 <h4>Sent Notifiers</h4>
                 <p className="stat-number">{notifications.length}</p>
@@ -2279,6 +2512,16 @@ function Management() {
                 <h4>Gallery img link</h4>
                 <p className="stat-text">{galleryData.linkEnabled ? 'Active' : 'Disabled'}</p>
                 <small className="stat-subtitle">{galleryData.linkTitle || 'No title set'}</small>
+              </div>
+              <div className="stat-card" onClick={() => setActiveTab('faqs')} style={{ cursor: 'pointer' }}>
+                <h4>Published FAQs</h4>
+                <p className="stat-number">{publicFAQs.length}</p>
+                <small className="stat-subtitle">Answered questions</small>
+              </div>
+              <div className="stat-card" onClick={() => setActiveTab('faqs')} style={{ cursor: 'pointer' }}>
+                <h4>Rejected FAQs</h4>
+                <p className="stat-number">{rejectedFAQs.length}</p>
+                <small className="stat-subtitle">Denied questions</small>
               </div>
               <div className="stat-card" style={{ cursor: 'default' }}>
                 <h4>System Status</h4>
@@ -3580,6 +3823,173 @@ function Management() {
             </div>
           </div>
         );
+      case 'faqs':
+        return (
+          <div className="tab-content">
+            <div className="tab-header">
+              <h3 style={{ borderBottom: 'none' }}>FAQ Management</h3>
+              <div className="tab-stats">
+                <span className="stat">Pending: {pendingFAQs.length}</span>
+                <span className="stat">Published: {publicFAQs.length}</span>
+                <span className="stat">Rejected: {rejectedFAQs.length}</span>
+              </div>
+            </div>
+
+            {/* Pending FAQs Table */}
+            <div className="table-section">
+              <h4>Pending Questions</h4>
+              {loadingFAQs ? (
+                <div className="loading-small">Loading...</div>
+              ) : pendingFAQs.length === 0 ? (
+                <div className="empty-state">No pending questions</div>
+              ) : (
+                <div className="table-container">
+                  <table className="faq-table">
+                    <thead>
+                      <tr>
+                        <th>Question</th>
+                        <th>Team Name</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingFAQs.map((faq) => (
+                        <tr key={faq.id}>
+                          <td className="question-cell">
+                            <div className="question-text">{faq.question}</div>
+                          </td>
+                          <td className="user-cell">{faq.teamName || 'Individual'}</td>
+                          <td className="date-cell">
+                            {new Date(faq.createdAt?.toDate?.() || faq.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="actions-cell">
+                            <button 
+                              className="btn-approve"
+                              onClick={() => handleApproveFAQ(faq.id)}
+                              title="Approve"
+                            >
+                              ✓
+                            </button>
+                            <button 
+                              className="btn-reject"
+                              onClick={() => handleRejectFAQ(faq.id)}
+                              title="Reject"
+                            >
+                              ✗
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Published FAQs Table */}
+            <div className="table-section">
+              <h4>Published FAQs</h4>
+              {publicFAQs.length === 0 ? (
+                <div className="empty-state">No published FAQs</div>
+              ) : (
+                <div className="table-container">
+                  <table className="faq-table">
+                    <thead>
+                      <tr>
+                        <th>Question</th>
+                        <th>Status</th>
+                        <th>Team Name</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {publicFAQs.map((faq) => (
+                        <tr key={faq.id}>
+                          <td className="question-cell">
+                            <div className="question-text">{faq.question}</div>
+                          </td>
+                          <td className="status-cell">
+                            <span className={`status-badge ${faq.answer ? 'answered' : 'unanswered'}`}>
+                              {faq.answer ? 'Answered' : 'Unanswered'}
+                            </span>
+                          </td>
+                          <td className="user-cell">{faq.teamName || 'Individual'}</td>
+                          <td className="date-cell">
+                            {new Date(faq.createdAt?.toDate?.() || faq.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="actions-cell">
+                            <button 
+                              className="btn-modify"
+                              onClick={() => {
+                                setEditingFAQ(faq);
+                                setAnswerText(faq.answer || '');
+                                setShowEditFAQPopup(true);
+                              }}
+                              title="Modify answer"
+                            >
+                              Modify
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Rejected FAQs Table */}
+            <div className="table-section">
+              <h4>Rejected FAQs</h4>
+              {rejectedFAQs.length === 0 ? (
+                <div className="empty-state">No rejected FAQs</div>
+              ) : (
+                <div className="table-container">
+                  <table className="faq-table">
+                    <thead>
+                      <tr>
+                        <th>Question</th>
+                        <th>Team Name</th>
+                        <th>Rejection Reason</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rejectedFAQs.map((faq) => (
+                        <tr key={faq.id}>
+                          <td className="question-cell">
+                            <div className="question-text">{faq.question}</div>
+                          </td>
+                          <td className="user-cell">{faq.teamName || 'Individual'}</td>
+                          <td className="reason-cell">
+                            <div className="rejection-reason">
+                              {faq.rejectionReason || 'No reason provided'}
+                            </div>
+                          </td>
+                          <td className="date-cell">
+                            {new Date(faq.createdAt?.toDate?.() || faq.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="actions-cell">
+                            <button 
+                              className="btn-approve"
+                              onClick={() => handleApproveFAQ(faq.id)}
+                              title="Approve this rejected FAQ"
+                            >
+                              Approve
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        );
       case 'settings':
         return (
           <div className="tab-content">
@@ -3621,7 +4031,7 @@ function Management() {
               </div>
               
               <div className="page-visibility-grid">
-                {Object.entries(pageVisibilitySettings).map(([pageName, isVisible]) => {
+                {Object.entries(pageVisibilitySettings).filter(([pageName]) => pageName !== 'updatedAt').map(([pageName, isVisible]) => {
                   const pageDisplayNames = {
                     home: 'Home',
                     rules: 'Rules',
@@ -3633,7 +4043,8 @@ function Management() {
                     result: 'Result',
                     dashboard: 'Dashboard',
                     login: 'Login',
-                    register: 'Register'
+                    register: 'Register',
+                    faq: 'FAQ'
                   };
                   
                   const pageDescriptions = {
@@ -3647,7 +4058,8 @@ function Management() {
                     result: 'Competition results and announcements',
                     dashboard: 'User dashboard (always visible when logged in)',
                     login: 'User login page',
-                    register: 'User registration page'
+                    register: 'User registration page',
+                    faq: 'Frequently asked questions and user queries'
                   };
                   
                   return (
@@ -3688,7 +4100,9 @@ function Management() {
                 <button 
                   onClick={() => {
                     const allVisible = Object.fromEntries(
-                      Object.keys(pageVisibilitySettings).map(key => [key, true])
+                      Object.keys(pageVisibilitySettings)
+                        .filter(key => key !== 'updatedAt')
+                        .map(key => [key, true])
                     );
                     Object.keys(allVisible).forEach(page => {
                       if (page !== 'dashboard') { // Don't update dashboard
@@ -3849,6 +4263,17 @@ function Management() {
               </svg>
             </span>
             Gallery
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'faqs' ? 'active' : ''}`}
+            onClick={() => setActiveTab('faqs')}
+          >
+            <span className="tab-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9.529 9.988a2.502 2.502 0 1 1 5 .191A2.441 2.441 0 0 1 12 12.582V14m-.01 3.008H12M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+              </svg>
+            </span>
+            FAQs
           </button>
           <button 
             className={`tab-btn ${activeTab === 'pages' ? 'active' : ''}`}
@@ -4292,6 +4717,165 @@ function Management() {
                 disabled={updatingNotification || !editNotificationForm.message.trim()}
               >
                 {updatingNotification ? 'Updating...' : 'Update Notification'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit FAQ Popup */}
+      {showEditFAQPopup && editingFAQ && (
+        <div className="popup-overlay">
+          <div className="popup-content edit-faq-popup">
+            <div className="popup-header">
+              <h3>Edit FAQ</h3>
+              <button className="close-btn" onClick={() => {
+                setShowEditFAQPopup(false);
+                setEditingFAQ(null);
+                setAnswerText('');
+              }}>×</button>
+            </div>
+            
+            <div className="popup-body">
+              <div className="faq-details">
+                <div className="detail-row">
+                  <span className="label">Team:</span>
+                  <span className="value">{editingFAQ.teamName || 'Individual'}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="label">Date:</span>
+                  <span className="value">
+                    {new Date(editingFAQ.createdAt?.toDate?.() || editingFAQ.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span className="label">Status:</span>
+                  <span className="value">
+                    <span className={`status-badge ${editingFAQ.answer ? 'answered' : 'unanswered'}`}>
+                      {editingFAQ.answer ? 'Answered' : 'Unanswered'}
+                    </span>
+                  </span>
+                </div>
+              </div>
+              
+              <div className="form-group">
+                <label><strong>Question:</strong></label>
+                <div className="question-display">
+                  {editingFAQ.question}
+                </div>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="faq-answer"><strong>Answer:</strong></label>
+                <textarea
+                  id="faq-answer"
+                  value={answerText}
+                  onChange={(e) => setAnswerText(e.target.value)}
+                  placeholder="Type your answer here..."
+                  rows="6"
+                  maxLength="1000"
+                />
+                <small className="char-count">
+                  {answerText.length}/1000 characters
+                </small>
+              </div>
+            </div>
+            
+            <div className="popup-footer">
+              <button 
+                type="button" 
+                className="cancel-btn" 
+                onClick={() => {
+                  setShowEditFAQPopup(false);
+                  setEditingFAQ(null);
+                  setAnswerText('');
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="delete-btn admin-delete-faq" 
+                onClick={() => handleDeleteFAQ(editingFAQ.id)}
+                title="Delete this FAQ permanently"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3,6 5,6 21,6"/>
+                  <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"/>
+                  <line x1="10" y1="11" x2="10" y2="17"/>
+                  <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+                Delete FAQ
+              </button>
+              <button 
+                type="button" 
+                className="save-btn" 
+                onClick={() => handleAnswerFAQ(editingFAQ.id)}
+                disabled={!answerText.trim()}
+              >
+                Save Answer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject FAQ Popup */}
+      {showRejectFAQPopup && rejectingFAQ && (
+        <div className="popup-overlay" onClick={() => setShowRejectFAQPopup(false)}>
+          <div className="popup-content faq-reject-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header">
+              <h3>Reject FAQ Question</h3>
+              <button 
+                className="close-btn" 
+                onClick={() => setShowRejectFAQPopup(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="popup-body">
+              <div className="reject-faq-question">
+                <h4>Question:</h4>
+                <p className="question-preview">{rejectingFAQ.question}</p>
+                <p className="question-meta">From: {rejectingFAQ.teamName || 'Individual'}</p>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="rejection-reason">Rejection Reason:</label>
+                <textarea
+                  id="rejection-reason"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Please provide a reason for rejecting this question..."
+                  rows="4"
+                  maxLength="500"
+                  required
+                />
+                <small className="char-count">
+                  {rejectionReason.length}/500 characters
+                </small>
+                <small className="help-text">
+                  This reason will be visible to the team that submitted the question.
+                </small>
+              </div>
+            </div>
+            
+            <div className="popup-footer">
+              <button 
+                type="button" 
+                className="cancel-btn" 
+                onClick={() => setShowRejectFAQPopup(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="reject-btn" 
+                onClick={confirmRejectFAQ}
+                disabled={!rejectionReason.trim()}
+              >
+                Reject FAQ
               </button>
             </div>
           </div>

@@ -45,7 +45,7 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .gallery-header {
-    margin-top: -300px;
+    margin-top: -16rem;
   }
   .gallery-page {
     padding: 0;

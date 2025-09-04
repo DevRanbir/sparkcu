@@ -14,11 +14,12 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Admin from './pages/Admin';
 import Management from './pages/Management';
+import FAQ from './pages/FAQ';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { logoutUser, logoutAdmin, getPageVisibilitySettings } from './services/firebase';
+import { logoutUser, logoutAdmin, getPageVisibilitySettings, migrateFAQPageVisibility } from './services/firebase';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 // Component to handle the main app content with routing
@@ -38,10 +39,16 @@ function AppContent() {
     result: true,
     dashboard: true,
     login: true,
-    register: true
+    register: true,
+    faq: true
   });
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Auto scroll to top on page change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   // Update login state based on Firebase auth state
   useEffect(() => {
@@ -58,6 +65,11 @@ function AppContent() {
     const fetchPageVisibility = async () => {
       try {
         setPageVisibilityLoading(true);
+        
+        // First, run the migration to ensure FAQ is included
+        await migrateFAQPageVisibility();
+        
+        // Then fetch the page visibility settings
         const result = await getPageVisibilitySettings();
         if (result.success) {
           setPageVisibilitySettings(result.data);
@@ -135,7 +147,7 @@ function AppContent() {
       return 'home';
     }
     
-    const availablePages = ['home', 'rules', 'schedule', 'about', 'keymaps', 'prizes', 'gallery', 'result'];
+    const availablePages = ['home', 'rules', 'schedule', 'about', 'keymaps', 'prizes', 'gallery', 'result', 'faq'];
     for (const page of availablePages) {
       if (pageVisibilitySettings[page]) {
         return page;
@@ -179,6 +191,7 @@ function AppContent() {
           <Route path="/prizes" element={(pageVisibilitySettings.prizes || isAdminLoggedIn) ? <Prizes /> : <Navigate to={`/${fallbackPage}`} replace />} />
           <Route path="/gallery" element={(pageVisibilitySettings.gallery || isAdminLoggedIn) ? <Gallery /> : <Navigate to={`/${fallbackPage}`} replace />} />
           <Route path="/result" element={(pageVisibilitySettings.result || isAdminLoggedIn) ? <Result /> : <Navigate to={`/${fallbackPage}`} replace />} />
+          <Route path="/faq" element={(pageVisibilitySettings.faq !== false || isAdminLoggedIn) ? <FAQ /> : <Navigate to={`/${fallbackPage}`} replace />} />
           <Route 
             path="/dashboard" 
             element={(isLoggedIn && (pageVisibilitySettings.dashboard || isAdminLoggedIn)) ? <Dashboard /> : <Navigate to={pageVisibilitySettings.login ? "/login" : `/${fallbackPage}`} replace />} 

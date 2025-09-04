@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Register.css';
-import { registerUser, checkTeamNameExists } from '../services/firebase';
+import { registerUser, checkTeamNameExists, checkUniversityIdExists } from '../services/firebase';
 
 const Register = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -70,18 +70,24 @@ const Register = () => {
     }));
   };
 
-  const handleMemberUidBlur = (index, value) => {
+  const handleMemberUidBlur = async (index, value) => {
     // Auto-format UID when user stops typing (on blur)
+    let finalValue = value;
     if (value.length >= 2 && !value.includes('BCS')) {
       if (/^\d{2}/.test(value)) {
-        const formattedValue = value.substring(0, 2) + 'BCS' + value.substring(2);
+        finalValue = value.substring(0, 2) + 'BCS' + value.substring(2);
         setFormData(prev => ({
           ...prev,
           members: prev.members.map((member, i) => 
-            i === index ? { ...member, uid: formattedValue } : member
+            i === index ? { ...member, uid: finalValue } : member
           )
         }));
       }
+    }
+    
+    // Validate UID for duplicates and existing registrations
+    if (finalValue && finalValue.length >= 5) {
+      await validateMemberUID(finalValue, index);
     }
   };
 
@@ -96,16 +102,22 @@ const Register = () => {
     }));
   };
 
-  const handleLeaderUidBlur = (value) => {
+  const handleLeaderUidBlur = async (value) => {
     // Auto-format UID when user stops typing (on blur)
+    let finalValue = value;
     if (value.length >= 2 && !value.includes('BCS')) {
       if (/^\d{2}/.test(value)) {
-        const formattedValue = value.substring(0, 2) + 'BCS' + value.substring(2);
+        finalValue = value.substring(0, 2) + 'BCS' + value.substring(2);
         setFormData(prev => ({
           ...prev,
-          leaderUid: formattedValue
+          leaderUid: finalValue
         }));
       }
+    }
+    
+    // Validate UID for existing registrations
+    if (finalValue && finalValue.length >= 5) {
+      await validateLeaderUID(finalValue);
     }
   };
 
@@ -227,7 +239,91 @@ const Register = () => {
         return false;
       }
     }
+    
+    // Validate UIDs for leader (step 1) and members (step 3)
+    if (step === 1) {
+      const uidCheck = await checkUniversityIdExists(formData.leaderUid);
+      if (uidCheck.exists) {
+        showToast(`University ID ${formData.leaderUid} is already registered in team "${uidCheck.teamName}" as ${uidCheck.role}.`);
+        return false;
+      }
+    }
+    
+    if (step === 3) {
+      // Check for duplicate UIDs within the current team
+      const filledMembers = formData.members.filter(member => 
+        member.name.trim() && member.uid.trim() && member.mobile.trim()
+      );
+      
+      const allUIDs = [formData.leaderUid, ...filledMembers.map(m => m.uid)];
+      const duplicateUIDs = allUIDs.filter((uid, index) => allUIDs.indexOf(uid) !== index);
+      
+      if (duplicateUIDs.length > 0) {
+        showToast(`Duplicate University ID found within team: ${duplicateUIDs[0]}`);
+        return false;
+      }
+      
+      // Check if any member UID already exists in other teams
+      for (const member of filledMembers) {
+        const uidCheck = await checkUniversityIdExists(member.uid);
+        if (uidCheck.exists) {
+          showToast(`University ID ${member.uid} is already registered in team "${uidCheck.teamName}" as ${uidCheck.role}.`);
+          return false;
+        }
+      }
+    }
+    
     return true;
+  };
+
+  // Individual UID validation for real-time checking
+  const validateLeaderUID = async (uid) => {
+    if (!uid || uid.length < 5) return; // Don't validate incomplete UIDs
+    
+    try {
+      const uidCheck = await checkUniversityIdExists(uid);
+      if (uidCheck.exists) {
+        showToast(`University ID ${uid} is already registered in team "${uidCheck.teamName}" as ${uidCheck.role}.`);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error validating leader UID:', error);
+      return true; // Don't block if validation fails
+    }
+  };
+
+  const validateMemberUID = async (uid, memberIndex) => {
+    if (!uid || uid.length < 5) return; // Don't validate incomplete UIDs
+    
+    try {
+      // Check within current team for duplicates
+      const allCurrentUIDs = [
+        formData.leaderUid,
+        ...formData.members.map((m, i) => i === memberIndex ? uid : m.uid)
+      ].filter(id => id && id.trim());
+      
+      const duplicates = allCurrentUIDs.filter((id, index) => 
+        allCurrentUIDs.indexOf(id) !== index && id === uid
+      );
+      
+      if (duplicates.length > 0) {
+        showToast(`University ID ${uid} is already used in this team.`);
+        return false;
+      }
+      
+      // Check in existing teams
+      const uidCheck = await checkUniversityIdExists(uid);
+      if (uidCheck.exists) {
+        showToast(`University ID ${uid} is already registered in team "${uidCheck.teamName}" as ${uidCheck.role}.`);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error validating member UID:', error);
+      return true; // Don't block if validation fails
+    }
   };
 
   const nextStep = async () => {
@@ -291,6 +387,26 @@ const Register = () => {
     if (teamExists) {
       showToast('Team name already exists. Please go back and choose a different name.', 'error');
       return;
+    }
+
+    // Final UID validation before submission
+    const filledMembers = formData.members.filter(member => member.name.trim() !== '');
+    const allUIDs = [formData.leaderUid, ...filledMembers.map(m => m.uid)];
+    
+    // Check for internal duplicates
+    const duplicateUIDs = allUIDs.filter((uid, index) => allUIDs.indexOf(uid) !== index);
+    if (duplicateUIDs.length > 0) {
+      showToast(`Duplicate University ID found: ${duplicateUIDs[0]}. Please check your team members.`, 'error');
+      return;
+    }
+    
+    // Check for existing UIDs in database
+    for (const uid of allUIDs) {
+      const uidCheck = await checkUniversityIdExists(uid);
+      if (uidCheck.exists) {
+        showToast(`University ID ${uid} is already registered in team "${uidCheck.teamName}". Please check your entries.`, 'error');
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -879,13 +995,6 @@ const Register = () => {
 
             {currentStep === 5 && (
               <div className="final-actions">
-                <button
-                  type="button"
-                  className="nav-button"
-                  onClick={resetForm}
-                >
-                  Register Another Team
-                </button>
                 <a href="/login" className="login-link">
                   Go to Login
                 </a>

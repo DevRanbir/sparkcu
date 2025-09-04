@@ -4,9 +4,25 @@ import './Homepage.css';
 import RotatingText from '../TextAnimations/RotatingText/RotatingText';
 import { getAllTeams, getCountdownData } from '../services/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import CircularGallery from '../components/CircularGallery/CircularGallery';
 import SEOHead from '../components/SEOHead';
 import { WebsiteStructuredData } from '../components/StructuredData';
+import BounceCards from '../components/BounceCards/BounceCards'
+
+const images = [
+  //"https://play-lh.googleusercontent.com/RKt7FfLHYfXyEJkY2imqAe1BP96wjAHtm7tH_rZZmBBX2QkC_2luYj6jXlPqoRhX5HmB",
+  "https://dxc.scene7.com/is/image/dxc/ibm_1050x1050?qlt=90&wid=1200&ts=1663565019618&$square_desktop$&dpr=off",
+  //"https://res.cloudinary.com/startup-grind/image/upload/c_fill,dpr_2.0,f_auto,g_center,h_1080,q_100,w_1080/v1/gcs/platform-data-goog/chapter_banners/GDG%20on%20Campus%20AOT_zXCmXZZ.png",
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTFpKENOpNIz-8kji-D-cRi0mMOuJxil2GhZQ&s",
+  
+];
+
+const transformStyles = [
+  "rotate(5deg) translate(-150px)",
+  "rotate(0deg) translate(-70px)",
+  "rotate(-5deg)",
+  "rotate(5deg) translate(70px)",
+  "rotate(-5deg) translate(150px)"
+];
 
 function Homepage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -198,7 +214,9 @@ function Homepage() {
             <div className="features">
               <span className="feature">Ideas & Innovation</span>
               <span className="feature">Team Competition</span>
-              <span className="feature">Expert Mentorship</span>
+              <span className="feature">Management Skills</span>
+              <span className="feature">Skill Development</span>
+              <span className="feature">Exciting Prizes</span>
             </div>
           </section>
 
@@ -395,9 +413,16 @@ function Homepage() {
             </div>
           </section>
 
-          <div style={{ height: '700px', width: '100%', position: 'relative', transform: 'scale(0.8)', marginTop: '-8rem', zIndex: 10000000 }}>
-            <CircularGallery bend={2} textColor="#000000ff" borderRadius={0.05} scrollEase={0.02}/>
-          </div>
+          <BounceCards
+            className="custom-bounceCards"
+            images={images}
+            containerWidth={500}
+            animationDelay={0.5}
+            animationStagger={0.2}
+            easeType="elastic.out(1, 0.5)"
+            transformStyles={transformStyles}
+            enableHover={true}
+          />
 
         </div>
 

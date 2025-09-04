@@ -72,6 +72,37 @@ export const checkTeamNameExists = async (teamName) => {
   }
 };
 
+export const checkUniversityIdExists = async (uid) => {
+  try {
+    // Query all teams collection to check if UID exists in any team
+    const teamsQuery = query(collection(db, 'teams'));
+    const teamsSnapshot = await getDocs(teamsQuery);
+    
+    for (const teamDoc of teamsSnapshot.docs) {
+      const teamData = teamDoc.data();
+      
+      // Check leader UID
+      if (teamData.leaderUid === uid) {
+        return { exists: true, teamName: teamData.teamName, role: 'leader' };
+      }
+      
+      // Check members UIDs
+      if (teamData.members && Array.isArray(teamData.members)) {
+        for (const member of teamData.members) {
+          if (member.uid === uid) {
+            return { exists: true, teamName: teamData.teamName, role: 'member' };
+          }
+        }
+      }
+    }
+    
+    return { exists: false };
+  } catch (error) {
+    console.error('Error checking university ID:', error);
+    return { exists: false };
+  }
+};
+
 // Authentication functions
 export const registerUser = async (email, password, userData) => {
   try {
@@ -1532,7 +1563,8 @@ export const getPageVisibilitySettings = async () => {
         result: true,
         dashboard: true, // Always visible for logged-in users
         login: true,
-        register: true
+        register: true,
+        faq: true
       };
       
       return {
@@ -2372,6 +2404,509 @@ export const deleteAllResults = async () => {
       success: false,
       error: error.code,
       message: 'Error deleting all results'
+    };
+  }
+};
+
+// FAQ Management Functions
+export const submitFAQQuestion = async (question, user) => {
+  try {
+    let faqData;
+
+    if (user) {
+      // Logged in user - try to get team name
+      let teamName = 'Individual';
+      try {
+        const teamResult = await getTeamByUserId(user.uid);
+        if (teamResult.success && teamResult.teamData) {
+          teamName = teamResult.teamData.teamName || 'Individual';
+        }
+      } catch (error) {
+        console.log('No team found for user, using Individual');
+      }
+
+      faqData = {
+        question: question.trim(),
+        userId: user.uid,
+        userEmail: user.email,
+        userName: user.displayName || 'Anonymous',
+        teamName: teamName,
+        status: 'pending',
+        answer: '',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        isAnonymous: false
+      };
+    } else {
+      // Anonymous user
+      faqData = {
+        question: question.trim(),
+        userId: null,
+        userEmail: 'anonymous@user.com',
+        userName: 'Anonymous User',
+        teamName: 'Anonymous User',
+        status: 'pending',
+        answer: '',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        isAnonymous: true
+      };
+    }
+
+    const docRef = await addDoc(collection(db, 'faqs'), faqData);
+    
+    return {
+      success: true,
+      id: docRef.id,
+      message: 'Question submitted successfully'
+    };
+  } catch (error) {
+    console.error('Error submitting FAQ question:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error submitting question'
+    };
+  }
+};
+
+export const getPublicFAQs = async () => {
+  try {
+    const q = query(
+      collection(db, 'faqs'),
+      where('status', '==', 'approved')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const faqs = [];
+    
+    querySnapshot.forEach((doc) => {
+      faqs.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    // Sort by createdAt in JavaScript instead of Firestore
+    faqs.sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
+      const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
+      return dateB - dateA; // Descending order (newest first)
+    });
+    
+    return {
+      success: true,
+      data: faqs,
+      message: 'Public FAQs retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting public FAQs:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error retrieving FAQs'
+    };
+  }
+};
+
+export const getUserFAQs = async (userId) => {
+  try {
+    const q = query(
+      collection(db, 'faqs'),
+      where('userId', '==', userId)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const faqs = [];
+    
+    querySnapshot.forEach((doc) => {
+      faqs.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    // Sort by createdAt in JavaScript instead of Firestore
+    faqs.sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
+      const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
+      return dateB - dateA; // Descending order (newest first)
+    });
+    
+    return {
+      success: true,
+      data: faqs,
+      message: 'User FAQs retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting user FAQs:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error retrieving user FAQs'
+    };
+  }
+};
+
+export const deleteFAQQuestion = async (faqId, userId) => {
+  try {
+    // First, verify the FAQ exists
+    const faqDoc = await getDoc(doc(db, 'faqs', faqId));
+    
+    if (!faqDoc.exists()) {
+      return {
+        success: false,
+        message: 'FAQ not found'
+      };
+    }
+    
+    const faqData = faqDoc.data();
+    
+    // Admin can delete any FAQ (userId === 'admin')
+    if (userId === 'admin') {
+      await deleteDoc(doc(db, 'faqs', faqId));
+      return {
+        success: true,
+        message: 'FAQ deleted successfully by admin'
+      };
+    }
+    
+    // Regular user restrictions
+    // Check if the user owns this FAQ
+    if (faqData.userId !== userId) {
+      return {
+        success: false,
+        message: 'You can only delete your own questions'
+      };
+    }
+    
+    // Check if FAQ can be deleted (only pending or rejected)
+    if (faqData.status === 'approved') {
+      return {
+        success: false,
+        message: 'Cannot delete approved questions'
+      };
+    }
+    
+    // Delete the FAQ
+    await deleteDoc(doc(db, 'faqs', faqId));
+    
+    return {
+      success: true,
+      message: 'Question deleted successfully'
+    };
+  } catch (error) {
+    console.error('Error deleting FAQ question:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error deleting question'
+    };
+  }
+};
+
+export const getPendingFAQs = async () => {
+  try {
+    const q = query(
+      collection(db, 'faqs'),
+      where('status', '==', 'pending')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const faqs = [];
+    
+    querySnapshot.forEach((doc) => {
+      faqs.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    // Sort by createdAt in JavaScript instead of Firestore
+    faqs.sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
+      const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
+      return dateB - dateA; // Descending order (newest first)
+    });
+    
+    return {
+      success: true,
+      data: faqs,
+      message: 'Pending FAQs retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting pending FAQs:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error retrieving pending FAQs'
+    };
+  }
+};
+
+export const getRejectedFAQs = async () => {
+  try {
+    const q = query(
+      collection(db, 'faqs'),
+      where('status', '==', 'rejected')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const faqs = [];
+    
+    querySnapshot.forEach((doc) => {
+      faqs.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    return {
+      success: true,
+      data: faqs,
+      message: 'Rejected FAQs retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting rejected FAQs:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error retrieving rejected FAQs'
+    };
+  }
+};
+
+export const approveFAQQuestion = async (faqId) => {
+  try {
+    const faqRef = doc(db, 'faqs', faqId);
+    await updateDoc(faqRef, {
+      status: 'approved',
+      updatedAt: serverTimestamp()
+    });
+    
+    return {
+      success: true,
+      message: 'FAQ question approved successfully'
+    };
+  } catch (error) {
+    console.error('Error approving FAQ question:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error approving question'
+    };
+  }
+};
+
+export const rejectFAQQuestion = async (faqId, rejectionReason = '') => {
+  try {
+    const faqRef = doc(db, 'faqs', faqId);
+    await updateDoc(faqRef, {
+      status: 'rejected',
+      rejectionReason: rejectionReason.trim(),
+      updatedAt: serverTimestamp()
+    });
+    
+    return {
+      success: true,
+      message: 'FAQ question rejected successfully'
+    };
+  } catch (error) {
+    console.error('Error rejecting FAQ question:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error rejecting question'
+    };
+  }
+};
+
+export const answerFAQQuestion = async (faqId, answer) => {
+  try {
+    const faqRef = doc(db, 'faqs', faqId);
+    await updateDoc(faqRef, {
+      answer: answer.trim(),
+      updatedAt: serverTimestamp()
+    });
+    
+    return {
+      success: true,
+      message: 'FAQ answer updated successfully'
+    };
+  } catch (error) {
+    console.error('Error updating FAQ answer:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error updating answer'
+    };
+  }
+};
+
+// Migration function to update existing FAQs with team names
+export const migrateFAQsWithTeamNames = async () => {
+  try {
+    // Get all FAQs
+    const faqsQuery = query(collection(db, 'faqs'));
+    const faqsSnapshot = await getDocs(faqsQuery);
+    
+    const updatePromises = [];
+    
+    for (const faqDoc of faqsSnapshot.docs) {
+      const faqData = faqDoc.data();
+      
+      // Skip if teamName already exists and is not 'Individual'
+      if (faqData.teamName && faqData.teamName !== 'Individual') {
+        continue;
+      }
+      
+      // Get team data for the user
+      if (faqData.userId) {
+        try {
+          const teamResult = await getTeamByUserId(faqData.userId);
+          let teamName = 'Individual';
+          
+          if (teamResult.success && teamResult.teamData) {
+            teamName = teamResult.teamData.teamName || 'Individual';
+          }
+          
+          // Update the FAQ document
+          updatePromises.push(
+            updateDoc(doc(db, 'faqs', faqDoc.id), {
+              teamName: teamName,
+              updatedAt: serverTimestamp()
+            })
+          );
+        } catch (error) {
+          console.log(`Could not find team for user ${faqData.userId}, keeping as Individual`);
+        }
+      }
+    }
+    
+    if (updatePromises.length > 0) {
+      await Promise.all(updatePromises);
+      console.log(`Updated ${updatePromises.length} FAQs with team names`);
+    }
+    
+    return {
+      success: true,
+      message: `Migration completed. Updated ${updatePromises.length} FAQs.`
+    };
+  } catch (error) {
+    console.error('Error migrating FAQs:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error during migration'
+    };
+  }
+};
+
+// Migration function to add FAQ to existing page visibility settings
+export const migrateFAQPageVisibility = async () => {
+  try {
+    const docRef = doc(db, 'settings', 'pageVisibility');
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      const currentSettings = docSnap.data();
+      // Add FAQ if it doesn't exist
+      if (!currentSettings.hasOwnProperty('faq')) {
+        const updatedSettings = {
+          ...currentSettings,
+          faq: true
+        };
+        
+        await setDoc(docRef, updatedSettings);
+        return {
+          success: true,
+          message: 'FAQ page visibility setting added successfully'
+        };
+      }
+    } else {
+      // Create default settings including FAQ
+      const defaultSettings = {
+        home: true,
+        rules: true,
+        schedule: true,
+        about: true,
+        keymaps: true,
+        prizes: true,
+        gallery: true,
+        result: true,
+        dashboard: true,
+        login: true,
+        register: true,
+        faq: true
+      };
+      
+      await setDoc(docRef, defaultSettings);
+      return {
+        success: true,
+        message: 'Default page visibility settings created with FAQ'
+      };
+    }
+    
+    return {
+      success: true,
+      message: 'FAQ page visibility already exists'
+    };
+  } catch (error) {
+    console.error('Error migrating FAQ page visibility:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error migrating FAQ page visibility'
+    };
+  }
+};
+
+// Add single notification to a team
+export const addSingleNotification = async (teamName, notificationText) => {
+  try {
+    // Find the team by name
+    const teamsRef = collection(db, 'teams');
+    const q = query(teamsRef, where('teamName', '==', teamName));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return {
+        success: false,
+        message: `Team "${teamName}" not found`
+      };
+    }
+    
+    // Get the first matching team (team names should be unique)
+    const teamDoc = querySnapshot.docs[0];
+    const teamData = teamDoc.data();
+    const teamRef = doc(db, 'teams', teamDoc.id);
+    
+    // Create new notification
+    const newNotification = {
+      notification: notificationText,
+      createdAt: new Date(),
+      read: false
+    };
+    
+    // Add to existing notifications array
+    const existingNotifications = teamData.notifications || [];
+    const updatedNotifications = [...existingNotifications, newNotification];
+    
+    // Update the team document
+    await updateDoc(teamRef, {
+      notifications: updatedNotifications
+    });
+    
+    return {
+      success: true,
+      message: `Notification sent to team "${teamName}"`
+    };
+  } catch (error) {
+    console.error('Error adding single notification:', error);
+    return {
+      success: false,
+      error: error.code,
+      message: 'Error sending notification'
     };
   }
 };
