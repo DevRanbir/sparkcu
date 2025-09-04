@@ -190,6 +190,11 @@ function Sidebar({ currentPath, onNavigate, isLoggedIn, isAdminLoggedIn, onLogou
   }
 
   const handleItemClick = (itemId) => {
+    // If on register page, only allow navigation to home and login
+    if (currentPage === 'register' && itemId !== 'home' && itemId !== 'login') {
+      return; // Disable navigation for all items except home and login
+    }
+    
     if (itemId === 'logout') {
       setShowLogoutConfirm(true);
     } else if (itemId === 'more') {
@@ -242,46 +247,54 @@ function Sidebar({ currentPath, onNavigate, isLoggedIn, isAdminLoggedIn, onLogou
         <div className="sidebar-content">
           {/* Desktop: Show all items */}
           <div className="desktop-items">
-            {allItems.map((item) => (
-              <div
-                key={item.id}
-                className={`sidebar-item ${currentPage === item.id ? 'active' : ''}`}
-                onClick={() => handleItemClick(item.id)}
-                onMouseEnter={() => setHoveredItem(item.id)}
-                onMouseLeave={() => setHoveredItem(null)}
-              >
-                <span className="sidebar-icon">{item.icon}</span>
-                
-                {/* Custom Tooltip */}
-                {hoveredItem === item.id && (
-                  <div className="sidebar-tooltip">
-                    {item.title}
-                  </div>
-                )}
-              </div>
-            ))}
+            {allItems.map((item) => {
+              const isDisabled = currentPage === 'register' && item.id !== 'home' && item.id !== 'login';
+              return (
+                <div
+                  key={item.id}
+                  className={`sidebar-item ${currentPage === item.id ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
+                  onClick={() => handleItemClick(item.id)}
+                  onMouseEnter={() => !isDisabled && setHoveredItem(item.id)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                  style={isDisabled ? { pointerEvents: 'none', opacity: 0.5 } : {}}
+                >
+                  <span className="sidebar-icon">{item.icon}</span>
+                  
+                  {/* Custom Tooltip */}
+                  {hoveredItem === item.id && !isDisabled && (
+                    <div className="sidebar-tooltip">
+                      {item.title}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {/* Mobile: Show limited items with dropdown */}
           <div className="mobile-items">
-            {mobileDisplayItems.map((item) => (
-              <div
-                key={item.id}
-                className={`sidebar-item ${currentPage === item.id ? 'active' : ''} ${item.id === 'more' ? 'more-button' : ''}`}
-                onClick={() => handleItemClick(item.id)}
-                onMouseEnter={() => setHoveredItem(item.id)}
-                onMouseLeave={() => setHoveredItem(null)}
-              >
-                <span className="sidebar-icon">{item.icon}</span>
-                
-                {/* Custom Tooltip */}
-                {hoveredItem === item.id && (
-                  <div className="sidebar-tooltip">
-                    {item.title}
-                  </div>
-                )}
-              </div>
-            ))}
+            {mobileDisplayItems.map((item) => {
+              const isDisabled = currentPage === 'register' && item.id !== 'home' && item.id !== 'login' && item.id !== 'more';
+              return (
+                <div
+                  key={item.id}
+                  className={`sidebar-item ${currentPage === item.id ? 'active' : ''} ${item.id === 'more' ? 'more-button' : ''} ${isDisabled ? 'disabled' : ''}`}
+                  onClick={() => handleItemClick(item.id)}
+                  onMouseEnter={() => !isDisabled && setHoveredItem(item.id)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                  style={isDisabled ? { pointerEvents: 'none', opacity: 0.5 } : {}}
+                >
+                  <span className="sidebar-icon">{item.icon}</span>
+                  
+                  {/* Custom Tooltip */}
+                  {hoveredItem === item.id && !isDisabled && (
+                    <div className="sidebar-tooltip">
+                      {item.title}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -289,16 +302,20 @@ function Sidebar({ currentPath, onNavigate, isLoggedIn, isAdminLoggedIn, onLogou
         {showMobileDropdown && mobileHiddenItems.length > 0 && (
           <div className="mobile-dropdown" ref={dropdownRef}>
             <div className="mobile-dropdown-content">
-              {mobileHiddenItems.map((item) => (
-                <div
-                  key={item.id}
-                  className={`mobile-dropdown-item ${currentPage === item.id ? 'active' : ''}`}
-                  onClick={() => handleItemClick(item.id)}
-                >
-                  <span className="dropdown-icon">{item.icon}</span>
-                  <span className="dropdown-title">{item.title}</span>
-                </div>
-              ))}
+              {mobileHiddenItems.map((item) => {
+                const isDisabled = currentPage === 'register' && item.id !== 'home' && item.id !== 'login';
+                return (
+                  <div
+                    key={item.id}
+                    className={`mobile-dropdown-item ${currentPage === item.id ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
+                    onClick={() => handleItemClick(item.id)}
+                    style={isDisabled ? { pointerEvents: 'none', opacity: 0.5 } : {}}
+                  >
+                    <span className="dropdown-icon">{item.icon}</span>
+                    <span className="dropdown-title">{item.title}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
