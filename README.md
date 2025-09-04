@@ -1,237 +1,222 @@
-# 🚀 SparkCU - Chandigarh University Ideathon Platform
+<div align="center">
+
+# ✨ SparkCU
+### Chandigarh University Ideathon Platform
 
 [![React](https://img.shields.io/badge/React-18.0+-blue.svg)](https://reactjs.org/)
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow.svg)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![CSS3](https://img.shields.io/badge/CSS3-Latest-blue.svg)](https://www.w3.org/Style/CSS/)
+[![Live Demo](https://img.shields.io/badge/Demo-CUSPARK.live-green.svg)](https://CUSPARK.live)
 
-A modern web platform for the **Spark Ideathon 2025-26** - A hackathon-style competition organized by the Department of CSE at Chandigarh University, designed specifically for 1st and 2nd-year Bachelor of Engineering (CSE) students to encourage creativity, innovation, and problem-solving.
+*Empowering innovation through technology*
+
+</div>
+
+---
+
+## 🎯 About
+
+SparkCU is a modern web platform built for the **Spark Ideathon 2025-26**, a hackathon-style competition organized by the Department of CSE at Chandigarh University. This platform provides a seamless experience for 1st and 2nd-year BE CSE students to register, participate, and showcase their innovative ideas.
 
 ## 🌟 Event Overview
 
-### 📋 Event Details
-- **Target Audience**: 1st and 2nd-year BE CSE students at Chandigarh University
-- **Theme**: Open Innovation
-- **Suggested Domains**: AI/ML, Web3, IoT, Cybersecurity
-- **Website**: [CUSPARK.live](https://CUSPARK.live)
+| Detail | Information |
+|--------|-------------|
+| **Target Audience** | 1st and 2nd-year BE CSE students |
+| **Theme** | Open Innovation |
+| **Domains** | AI/ML, Web3, IoT, Cybersecurity |
+| **Website** | [CUSPARK.live](https://CUSPARK.live) |
 
-### 🏗️ Event Structure
+### Competition Structure
 
-The Spark Ideathon consists of three main components:
+#### � Main Evaluation: PPT Presentation (10 marks)
+> Core component where teams present their innovative solutions
 
-#### 1. 👨‍🏫 Expert Guidance
-- Mentorship sessions with industry experts and university professors
-- Help teams refine ideas and understand necessary tools and technologies
+| Criteria | Marks | Description |
+|----------|-------|-------------|
+| Problem Understanding & Relevance | 2 | How well the team understands and addresses real-world issues |
+| Creativity & Innovation | 3 | Originality and uniqueness of the solution |
+| Technical Feasibility | 2 | Implementation possibility and technical depth |
+| Presentation & Communication | 3 | Clarity and effectiveness of presentation |
 
-#### 2. 📊 PPT Presentation (Main Evaluation - 10 marks)
-Core competition component with evaluation criteria:
-- **Problem Understanding & Relevance**: 2 marks
-- **Creativity & Innovation**: 3 marks  
-- **Technical Feasibility / Implementation**: 2 marks
-- **Presentation & Communication**: 3 marks
+#### 💻 Bonus: Coding Contest (Optional)
+> Three-round quiz competition with bonus scoring
 
-#### 3. 💻 Coding Contest (Optional Bonus)
-Quiz-based contest with multiple-choice questions across three rounds:
-- **Web Development**
-- **General Programming** 
-- **App Development**
+**Rounds:**
+- Web Development
+- General Programming  
+- App Development
 
-**Bonus Scoring**:
-- Participation in any round: +0.5 marks
-- Best in one category: +1 mark
-- Overall Topper (best in 2+ categories): +2 marks
-- *Total score capped at 10 marks*
+**Scoring:**
+- 🎁 Participation in any round: +0.5 marks
+- 🏆 Best in one category: +1 mark
+- 🥇 Overall Topper (2+ categories): +2 marks
 
-## 👥 Team Requirements
+#### 👨‍🏫 Expert Guidance
+> Mentorship sessions with industry experts and professors
 
-### Team Composition
-- **Size**: Minimum 3, Maximum 4 members
-- **Eligibility**: All members must be 1st or 2nd-year BE CSE students at Chandigarh University
-- **Leadership**: Each team must designate one Team Leader for communication
+## 👥 Team Guidelines
 
-### 📋 Presentation Guidelines
-- **Maximum**: 12 slides
-- **Required Slides**: Title Page, Problem Statement, Proposed Solution, Tech Stack, Future Scope
-- **Theme**: Open Innovation (teams choose their own problem statement)
+### Team Requirements
+- **Size:** 3-4 members
+- **Eligibility:** 1st or 2nd-year BE CSE students only
+- **Leadership:** One designated Team Leader
 
-## 📏 Rules and Policies
+### Presentation Requirements
+- **Slides:** Maximum 12 slides
+- **Must Include:** Title Page, Problem Statement, Solution, Tech Stack, Future Scope
+- **Format:** Open Innovation theme
 
-### ❌ Prohibited Actions
-- **Plagiarism**: Copying content or ideas from other teams → Immediate disqualification
-- **AI Misuse**: Using AI tools (Gamma, Canva templates) to directly create final PPT → Disqualification
+## � Rules & Policies
 
-### ✅ Allowed AI Usage
-- Brainstorming ideas
+<details>
+<summary><strong>🚫 Prohibited Actions</strong></summary>
+
+- **Plagiarism:** Copying from other teams → Immediate disqualification
+- **AI Misuse:** Using AI tools to directly create final PPT → Disqualification
+
+</details>
+
+<details>
+<summary><strong>✅ Allowed AI Usage</strong></summary>
+
+- Brainstorming and ideation
 - Support during coding contest
-- *All presented content must be customized and in team's own words*
+- Content must be customized in team's own words
 
-### 🤝 Conduct
-- Respectful behavior expected from all participants
+</details>
+
+<details>
+<summary><strong>🤝 Code of Conduct</strong></summary>
+
+- Respectful behavior required
 - Misconduct leads to disqualification
 - Judges' decisions are final
 
-## 🏆 Rewards and Recognition
+</details>
 
-### For All Participants
-- 📅 Full Day Duty Leave (DL)
-- 📜 E-Certificates
+## 🏆 Rewards
 
-### Top Performers
-- 🥇🥈🥉 **Top 3 Teams**: Trophies and certificates
-- 🏅 **Category Winners**: Coding contest certificates (subject to club confirmation)
+### 🎁 All Participants
+- Full Day Duty Leave (DL)
+- E-Certificates
 
-## 🖥️ Website Architecture
+### 🥇 Top Performers
+- **Top 3 Teams:** Trophies + Certificates
+- **Category Winners:** Special recognition certificates
 
-### 📄 Core Pages (5 Pages)
-
-#### 1. 🏠 **Home Page** (`/`)
-**Purpose**: Main landing page to attract and inform visitors
-**Components**:
-- Navbar
-- HeroSection (event title, dates, "Register Now" button)
-- AboutSummary (brief event explanation)
-- TimelineSection
-- PrizesSection
-- SponsorsSection
-- Footer
-
-#### 2. 📖 **Rules & Guidelines** (`/rules`)
-**Purpose**: Comprehensive rules listing to avoid confusion
-**Components**:
-- Navbar
-- Rulebook (General, PPT, AI Usage, Coding Contest rules)
-- FAQ (Accordion component)
-- Footer
-
-#### 3. 📅 **Schedule/Timeline** (`/schedule`)
-**Purpose**: Dedicated event timeline page
-**Components**:
-- Navbar
-- TimelineComponent (visual event dates representation)
-- Footer
-
-#### 4. 📝 **Registration** (`/register`)
-**Purpose**: Team registration form
-**Components**:
-- Navbar
-- RegistrationForm
-- Footer
-
-#### 5. 👤 **Team Dashboard** (`/dashboard`)
-**Purpose**: Protected area for registered teams
-**Components**:
-- Navbar
-- DashboardLayout
-  - TeamPanel (view/edit members)
-  - SubmissionPanel (FileUpload for PPT)
-  - Announcements section
-- Footer
-
-### 🧩 Reusable Components
-
-#### Navigation & Layout
-- **Navbar**: Main navigation with links to all pages
-- **Footer**: Contact info, social media links, quick links
-- **Modal**: Pop-ups for confirmations, alerts, additional info
-
-#### Content Components
-- **HeroSection**: Large attention-grabbing homepage section
-- **Button**: Consistent styling for CTAs ("Register Now", "Submit", "Login")
-- **ProfileCard**: Display mentor/judge pictures, names, bios
-- **Accordion**: Collapsible FAQ items
-- **TimelineComponent**: Visual event milestone sequence
-
-#### Form Components
-- **RegistrationForm**: User registration with validation
-- **LoginForm**: Team login with validation
-- **FileUpload**: PPT file upload in dashboard
-
-## 🚀 Getting Started
+## � Quick Start
 
 ### Prerequisites
-- Node.js (v14 or higher)
-- npm or yarn package manager
+- Node.js 14+ 
+- npm or yarn
 
-### Installation
-
+### Installation & Setup
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/sparkcu.git
-
-# Navigate to project directory
+# Clone repository
+git clone https://github.com/DevRanbir/sparkcu.git
 cd sparkcu
 
-# Install dependencies
+# Install dependencies  
 npm install
 
 # Start development server
 npm start
 ```
 
-### Available Scripts
+Open [http://localhost:3000](http://localhost:3000) to view in browser.
 
-- **`npm start`**: Runs the app in development mode at [http://localhost:3000](http://localhost:3000)
-- **`npm test`**: Launches the test runner in interactive watch mode
-- **`npm run build`**: Builds the app for production to the `build` folder
-- **`npm run eject`**: Ejects from Create React App (⚠️ one-way operation)
+### Available Commands
+```bash
+npm start      # Development server
+npm test       # Run tests
+npm run build  # Production build
+```
+
+## 🏗️ Architecture
+
+### Core Pages
+
+| Page | Route | Purpose |
+|------|-------|---------|
+| **Home** | `/` | Landing page with event overview |
+| **Rules** | `/rules` | Competition guidelines and FAQ |
+| **Schedule** | `/schedule` | Event timeline and milestones |
+| **Register** | `/register` | Team registration form |
+| **Dashboard** | `/dashboard` | Team management and submissions |
+
+### Key Features
+
+#### 🎨 User Interface
+- Clean, modern design
+- Responsive across all devices
+- Intuitive navigation
+
+#### 🔐 Team Management
+- Secure registration system
+- Team dashboard for collaboration
+- File upload for presentations
+
+#### 📱 Interactive Components
+- Timeline visualization
+- FAQ accordion
+- Registration forms with validation
 
 ## 📁 Project Structure
 
 ```
 sparkcu/
-├── public/
-│   ├── index.html
-│   ├── favicon.ico
-│   └── ...
-├── src/
-│   ├── components/
-│   │   ├── Sidebar/
-│   │   ├── Navbar/
-│   │   ├── Footer/
-│   │   ├── HeroSection/
-│   │   ├── TimelineComponent/
+├── 📂 public/           # Static assets
+├── 📂 src/
+│   ├── 📂 components/   # Reusable UI components
+│   │   ├── Navbar/      # Navigation component
+│   │   ├── Footer/      # Footer component
+│   │   ├── BounceCards/ # Animated card components
 │   │   └── ...
-│   ├── pages/
-│   │   ├── Homepage/
-│   │   ├── Rules/
-│   │   ├── Schedule/
-│   │   ├── Registration/
-│   │   └── Dashboard/
-│   ├── App.js
-│   ├── App.css
-│   └── index.js
-├── package.json
-└── README.md
+│   ├── 📂 pages/        # Main application pages
+│   │   ├── Homepage/    # Landing page
+│   │   ├── Dashboard/   # Team dashboard
+│   │   ├── Register/    # Registration page
+│   │   └── ...
+│   ├── 📂 services/     # External service integrations
+│   └── 📂 utils/        # Helper functions
+├── 📄 package.json     # Dependencies and scripts
+└── 📄 README.md        # Documentation
 ```
 
-## 🛠️ Technologies Used
+## 🛠️ Tech Stack
 
-- **Frontend**: React.js, CSS3, HTML5
-- **Styling**: CSS Modules, Flexbox, Grid
-- **Icons**: SVG Icons
-- **Build Tool**: Create React App
-- **Version Control**: Git
+| Technology | Purpose |
+|------------|---------|
+| **React 18** | Frontend framework |
+| **CSS3** | Styling and animations |
+| **JavaScript ES6+** | Core programming language |
+| **Create React App** | Build tooling |
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+We welcome contributions! Please follow these steps:
 
-## 📞 Contact
+1. **Fork** the repository
+2. **Create** your feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
 
-- **Event Organizers**: Department of CSE, Chandigarh University
-- **Website**: [CUSPARK.live](https://CUSPARK.live)
-- **Project Repository**: [GitHub Repository](https://github.com/your-username/sparkcu)
+## 📞 Support & Contact
 
-## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- **🌐 Website:** [CUSPARK.live](https://CUSPARK.live)
+- **🏛️ Organizer:** Department of CSE, Chandigarh University
+- **💻 Repository:** [GitHub](https://github.com/DevRanbir/sparkcu)
 
 ---
 
 <div align="center">
-  <strong>🎯 Empowering Innovation at Chandigarh University</strong><br>
-  Made with ❤️ for the Spark Ideathon 2025-26
+
+### 🎯 **Empowering Innovation at Chandigarh University**
+
+Made with ❤️ for Spark Ideathon 2025-26
+
+*Building the future, one idea at a time*
+
 </div>
