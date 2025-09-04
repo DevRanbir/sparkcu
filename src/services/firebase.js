@@ -41,15 +41,7 @@ import {
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyD_lIpB7ScErML9_Hlx6wfNl8nbgLdw6bs",
-  authDomain: "cuspark2025.firebaseapp.com",
-  projectId: "cuspark2025",
-  storageBucket: "cuspark2025.firebasestorage.app",
-  messagingSenderId: "11642595818",
-  appId: "1:11642595818:web:5ed31a8153c98a898caa93",
-  measurementId: "G-NRPTXVV6DD"
-};
+
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
