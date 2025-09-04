@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://cuspark.live/sitemap.xml
+
+# Disallow admin and dashboard pages
+Disallow: /admin
+Disallow: /management
+Disallow: /dashboard
+
+# Allow all other pages
+Allow: /home
+Allow: /about
+Allow: /rules
+Allow: /schedule
+Allow: /keymaps
+Allow: /prizes
+Allow: /gallery
+Allow: /result
+Allow: /login
+Allow: /register
