@@ -1,5 +1,6 @@
 import React from 'react';
 import './Rules.css';
+import SEOHead from '../components/SEOHead';
 
 const Rules = () => {
   const rulesData = {
@@ -62,6 +63,12 @@ const Rules = () => {
 
   return (
     <div className="rules-page">
+      <SEOHead 
+        title="Rules & Guidelines | CuSpark Ideathon 2025-26"
+        description="Essential rules and guidelines for CuSpark Ideathon participants. Learn about team formation, presentation guidelines, and competition requirements for CSE students."
+        keywords="CuSpark Rules, Ideathon Guidelines, Competition Rules, CSE Competition, Team Formation, Presentation Guidelines"
+        url="https://cuspark.live/rules"
+      />
       <div className="rules-header">
         <h1>SparkCU Ideathon Rules</h1>
         <p>Essential guidelines for all participants</p>

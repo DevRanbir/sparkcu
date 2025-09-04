@@ -5,6 +5,8 @@ import RotatingText from '../TextAnimations/RotatingText/RotatingText';
 import { getAllTeams, getCountdownData } from '../services/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import CircularGallery from '../components/CircularGallery/CircularGallery';
+import SEOHead from '../components/SEOHead';
+import { WebsiteStructuredData } from '../components/StructuredData';
 
 function Homepage() {
   const { currentUser, loading: authLoading } = useAuth();
@@ -136,6 +138,13 @@ function Homepage() {
 
   return (
     <div className="homepage">
+      <SEOHead 
+        title="CuSpark Ideathon 2025-26 | Chandigarh University - CSE Competition"
+        description="Join CuSpark Ideathon 2025-26 - A hackathon-style competition for 1st & 2nd year CSE students at Chandigarh University. Register now for exciting prizes and innovation challenges!"
+        keywords="CuSpark, Ideathon, Hackathon, Chandigarh University, CSE, Programming Competition, Innovation, Students, Technology, 2025-26"
+        url="https://cuspark.live/"
+      />
+      <WebsiteStructuredData />
       <div className="homepage-content">
         {/* Hero Section */}
         <div className="hero-section">

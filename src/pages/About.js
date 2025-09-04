@@ -3,6 +3,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import './About.css';
+import SEOHead from '../components/SEOHead';
 
 // Set up PDF.js worker for react-pdf v7 with pdfjs-dist v5
 // Try CDN worker first, fallback to local if needed
@@ -237,6 +238,12 @@ function About() {
 
   return (
     <div className="about">
+      <SEOHead 
+        title="About CuSpark Ideathon | Chandigarh University CSE Competition"
+        description="Learn about CuSpark Ideathon 2025-26 - Complete ideathon guide and documentation for CSE students at Chandigarh University. View planning details and competition format."
+        keywords="CuSpark About, Ideathon Guide, CSE Competition, Chandigarh University, Event Documentation, Competition Rules"
+        url="https://cuspark.live/about"
+      />
       <div className="about-content">
         <header className="about-header">
           <h1 className="about-title">Spark Planning</h1>
